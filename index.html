@@ -1,0 +1,1584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>The Stacks — Record Collection</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2c2820">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="The Stacks">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700;9..144,900&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap');
+
+  :root {
+    --ink: #1a1815;
+    --paper: #f2ecdc;
+    --paper-dim: #e4dac0;
+    --vinyl: #2c2820;
+    --vinyl-groove: #38332a;
+    --amber: #eba33a;
+    --amber-dim: #c98a2c;
+    --rust: #c85a3d;
+    --olive: #7d8354;
+    --line: rgba(26,24,21,0.14);
+    --line-light: rgba(242,236,220,0.18);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--vinyl);
+    background-image:
+      radial-gradient(circle at 85% -10%, rgba(235,163,58,0.10), transparent 45%),
+      repeating-radial-gradient(circle at 50% 50%, transparent 0, transparent 2px, rgba(255,255,255,0.014) 3px);
+    color: var(--paper);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: 1100px; margin: 0 auto; padding: calc(28px + env(safe-area-inset-top, 0px)) 20px 80px; }
+
+  /* ---------- HEADER / SIGNATURE ---------- */
+  header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 14px 22px;
+    padding-bottom: 26px;
+    margin-bottom: 28px;
+    border-bottom: 1px solid var(--line-light);
+  }
+
+  .header-actions {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .logo-mark {
+    width: 64px;
+    height: 64px;
+    flex-shrink: 0;
+    object-fit: contain;
+    filter: drop-shadow(0 6px 14px rgba(0,0,0,0.45));
+    transition: transform 0.25s ease;
+  }
+  header:hover .logo-mark { transform: translateY(-2px) rotate(-3deg); }
+
+  .titles h1 {
+    font-family: 'Fraunces', serif;
+    font-weight: 900;
+    font-size: 30px;
+    letter-spacing: -0.01em;
+    color: var(--paper);
+  }
+  .titles p {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-top: 4px;
+  }
+
+  /* ---------- STATS STRIP ---------- */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--line-light);
+    border: 1px solid var(--line-light);
+    margin-bottom: 26px;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+  .stat { background: var(--vinyl); padding: 14px 16px; }
+  .stat .n { font-size: 22px; font-weight: 600; color: var(--amber); }
+  .stat .l { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(236,229,211,0.5); margin-top: 2px; }
+
+  /* ---------- CONTROLS ---------- */
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 22px;
+    align-items: center;
+  }
+  input[type="text"], select {
+    background: var(--vinyl-groove);
+    border: 1px solid var(--line-light);
+    color: var(--paper);
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    padding: 10px 12px;
+    border-radius: 3px;
+    outline: none;
+  }
+  input[type="text"]:focus, select:focus { border-color: var(--amber-dim); }
+  #search { flex: 1; min-width: 180px; }
+  select { cursor: pointer; }
+
+  .btn {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    padding: 10px 16px;
+    border-radius: 3px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: transform 0.08s ease, background 0.15s ease;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn-primary { background: var(--amber); color: var(--vinyl); font-weight: 600; }
+  .btn-primary:hover { background: #eaa53f; }
+  .btn-ghost { background: transparent; border-color: var(--line-light); color: var(--paper); }
+  .btn-ghost:hover { border-color: var(--amber-dim); color: var(--amber); }
+
+  /* ---------- CRATE / GRID ---------- */
+  .crate {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+    gap: 14px;
+  }
+
+  /* ---------- STACKS (genre piles) ---------- */
+  .stacks-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    gap: 34px 22px;
+  }
+
+  .stack-tile {
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: none;
+    border: none;
+    padding: 0;
+    font-family: inherit;
+    color: inherit;
+  }
+
+  .stack-visual {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    margin-bottom: 14px;
+  }
+
+  .stack-sleeve {
+    position: absolute;
+    inset: 0;
+    border-radius: 3px;
+    background: var(--paper-dim);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    overflow: hidden;
+  }
+  .stack-sleeve img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .stack-sleeve.s4 { transform: translate(13px, -11px) rotate(10deg); background: #c7bc95; z-index: 0; }
+  .stack-sleeve.s4 img { filter: brightness(0.62) saturate(0.8); }
+  .stack-sleeve.s3 { transform: translate(9px, -9px) rotate(6deg); background: #d8cead; z-index: 1; }
+  .stack-sleeve.s3 img { filter: brightness(0.72) saturate(0.85); }
+  .stack-sleeve.s2 { transform: translate(5px, -5px) rotate(3deg); background: var(--paper-dim); z-index: 2; }
+  .stack-sleeve.s2 img { filter: brightness(0.86) saturate(0.92); }
+  .stack-badge {
+    position: absolute;
+    top: -10px; right: -10px;
+    min-width: 26px; height: 26px;
+    padding: 0 6px;
+    border-radius: 13px;
+    background: var(--amber);
+    color: #412402;
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 600;
+    font-size: 12px;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+    z-index: 4;
+  }
+  .stack-sleeve.face-sleeve {
+    z-index: 3;
+    background: var(--paper);
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .stack-tile:hover .s4 { transform: translate(17px, -15px) rotate(13deg); }
+  .stack-tile:hover .s3 { transform: translate(13px, -13px) rotate(9deg); }
+  .stack-tile:hover .s2 { transform: translate(7px, -7px) rotate(4deg); }
+  .stack-tile:hover .face-sleeve { transform: translate(0,-3px); box-shadow: 0 10px 20px rgba(0,0,0,0.4); }
+
+  .face-sleeve img { width: 100%; height: 100%; object-fit: cover; }
+  .face-sleeve .face-fallback {
+    width: 60%; height: 60%;
+    border-radius: 50%;
+    background: radial-gradient(circle at center, var(--amber) 0 14%, var(--vinyl) 15% 20%, var(--ink) 21% 100%);
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .stack-label { text-align: center; }
+  .stack-label h3 {
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-size: 15.5px;
+    color: var(--paper);
+  }
+  .stack-label .stack-count {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10.5px;
+    color: var(--amber-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .sleeve {
+    background: var(--paper);
+    color: var(--ink);
+    border-radius: 2px;
+    padding: 16px 16px 14px;
+    position: relative;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.35);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    display: flex;
+    flex-direction: column;
+    min-height: 176px;
+  }
+  .sleeve:hover { transform: translateY(-3px); box-shadow: 0 10px 24px rgba(0,0,0,0.45); }
+  .sleeve::before {
+    content: '';
+    position: absolute; top: 14px; right: -1px;
+    width: 6px; height: calc(100% - 28px);
+    background: repeating-linear-gradient(180deg, var(--vinyl) 0 3px, transparent 3px 6px);
+    opacity: 0.35;
+  }
+
+  .sleeve .eyebrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--amber-dim);
+    margin-bottom: 6px;
+  }
+  .sleeve h3 {
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-size: 18px;
+    line-height: 1.15;
+    margin-bottom: 3px;
+  }
+  .sleeve .artist {
+    font-size: 13px;
+    color: #55503f;
+    margin-bottom: 10px;
+  }
+  .sleeve .meta {
+    margin-top: auto;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10.5px;
+  }
+  .chip {
+    background: rgba(26,24,21,0.08);
+    padding: 3px 7px;
+    border-radius: 2px;
+    color: #3a362b;
+  }
+  .chip.condition-M { background: rgba(107,112,72,0.22); color: #4a4d2f; }
+  .chip.condition-NM { background: rgba(107,112,72,0.16); color: #52562f; }
+  .chip.condition-VG { background: rgba(224,152,42,0.22); color: #8a5e15; }
+  .chip.condition-G { background: rgba(184,72,47,0.18); color: #8a3521; }
+
+  .sleeve .row-actions {
+    position: absolute; top: 10px; right: 10px;
+    display: flex; gap: 4px;
+    opacity: 0;
+    transition: opacity 0.12s ease;
+  }
+  .sleeve:hover .row-actions { opacity: 1; }
+  .icon-btn {
+    width: 24px; height: 24px;
+    border-radius: 3px;
+    border: none;
+    background: rgba(26,24,21,0.08);
+    color: var(--ink);
+    cursor: pointer;
+    font-size: 12px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .icon-btn:hover { background: rgba(184,72,47,0.75); color: #fff; }
+  .icon-btn.edit:hover { background: var(--amber-dim); color: #fff; }
+
+  .empty-state {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 60px 20px;
+    font-family: 'IBM Plex Mono', monospace;
+    color: rgba(236,229,211,0.45);
+    font-size: 13px;
+  }
+
+  /* ---------- MODAL ---------- */
+  .overlay {
+    position: fixed; inset: 0;
+    background: rgba(10,9,6,0.72);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 50;
+  }
+  .overlay.open { display: flex; }
+  .modal {
+    background: var(--paper);
+    color: var(--ink);
+    width: 100%;
+    max-width: 460px;
+    max-height: 90vh;
+    overflow-y: auto;
+    border-radius: 3px;
+    padding: 26px;
+  }
+  .modal h2 {
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-size: 20px;
+    margin-bottom: 18px;
+  }
+  .field { margin-bottom: 13px; }
+  .field label {
+    display: block;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #6b6650;
+    margin-bottom: 5px;
+  }
+  .field input, .field select, .field textarea {
+    width: 100%;
+    background: #fff;
+    border: 1px solid rgba(26,24,21,0.2);
+    padding: 9px 10px;
+    border-radius: 3px;
+    font-family: 'Inter', sans-serif;
+    font-size: 13.5px;
+    color: var(--ink);
+    outline: none;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--amber-dim); }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+
+  .help-modal { max-width: 560px; }
+  .help-modal h2 { margin-bottom: 0; }
+  .help-modal h3 {
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--ink);
+    margin-top: 18px;
+    margin-bottom: 6px;
+  }
+  .help-modal p { font-size: 13.5px; line-height: 1.5; margin-bottom: 8px; color: #3a362b; }
+  .help-modal ul, .help-modal ol {
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: #3a362b;
+    padding-left: 20px;
+    margin-bottom: 8px;
+  }
+  .help-modal li { margin-bottom: 4px; }
+  .help-modal strong { color: var(--ink); }
+  .modal .btn-primary { background: var(--vinyl); color: var(--paper); }
+  .modal .btn-ghost { border-color: rgba(26,24,21,0.2); color: var(--ink); }
+  .modal .btn-ghost:hover { border-color: var(--rust); color: var(--rust); }
+
+  #lookupField { padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px dashed rgba(26,24,21,0.2); }
+  #lookupResults { margin-top: 8px; max-height: 180px; overflow-y: auto; }
+  .lookup-hit {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 9px;
+    border: 1px solid rgba(26,24,21,0.12);
+    border-radius: 3px;
+    margin-top: 5px;
+    cursor: pointer;
+    font-size: 12.5px;
+    background: #fff;
+  }
+  .lookup-hit:hover { border-color: var(--amber-dim); background: #fff8ec; }
+  .lookup-hit .lh-title { font-weight: 600; }
+  .lookup-hit .lh-sub { color: #6b6650; font-size: 11px; margin-top: 1px; }
+  .lookup-status { font-size: 12px; color: #6b6650; margin-top: 6px; font-family: 'IBM Plex Mono', monospace; }
+
+  ::-webkit-scrollbar { width: 8px; }
+  ::-webkit-scrollbar-thumb { background: rgba(236,229,211,0.15); border-radius: 4px; }
+
+  @media (max-width: 560px) {
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    .titles h1 { font-size: 22px; }
+    .logo-mark { width: 48px; height: 48px; }
+    .header-actions { width: 100%; justify-content: flex-end; margin-left: 0; }
+    .field-row { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
+<body>
+<div class="wrap">
+
+  <header>
+    <img src="logo.png" alt="The Stacks" class="logo-mark">
+    <div class="titles">
+      <h1>The Stacks</h1>
+      <p>your personal record ledger</p>
+    </div>
+    <div class="header-actions">
+      <span id="userEmail" style="font-family:'IBM Plex Mono',monospace; font-size:11px; color:rgba(236,229,211,0.55);"></span>
+      <button class="btn btn-ghost" id="helpBtn" style="display:none;">❓ Help</button>
+      <button class="btn btn-ghost" id="securityBtn" style="display:none;">🔒 Security</button>
+      <button class="btn btn-ghost" id="signOutBtn" style="display:none;">Sign out</button>
+    </div>
+  </header>
+
+  <div id="appBody" style="display:none;">
+
+  <div class="stats" id="stats"></div>
+
+  <div class="controls">
+    <input type="text" id="search" placeholder="Search artist, album, or genre…">
+    <select id="sortBy">
+      <option value="added-desc">Recently added</option>
+      <option value="artist-asc">Artist A–Z</option>
+      <option value="year-desc">Year (newest)</option>
+      <option value="year-asc">Year (oldest)</option>
+      <option value="value-desc">Value (high–low)</option>
+    </select>
+    <select id="filterGenre"><option value="">All genres</option></select>
+    <button class="btn btn-ghost" id="allRecordsBtn">📋 All Records</button>
+    <button class="btn btn-primary" id="addBtn">+ Add Record</button>
+  </div>
+
+  <div id="backBar" style="display:none; margin-bottom:16px;">
+    <button class="btn btn-ghost" id="backToStacksBtn">← Back to Stacks</button>
+  </div>
+
+  <div class="stacks-grid" id="stacksGrid"></div>
+  <div class="crate" id="crate"></div>
+  </div>
+</div>
+
+<div class="overlay open" id="loginOverlay">
+  <div class="modal" style="max-width:360px;">
+    <h2 id="authTitle">Sign in</h2>
+    <div class="field">
+      <label>Email</label>
+      <input type="text" id="authEmail" autocomplete="email">
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="authPassword" autocomplete="current-password">
+    </div>
+    <div id="authError" style="color:var(--rust); font-size:12px; margin-bottom:10px; display:none;"></div>
+    <div id="authStatus" style="color:#6b6650; font-size:12px; margin-bottom:10px; display:none;"></div>
+    <div class="modal-actions" style="justify-content:space-between;">
+      <button type="button" class="btn btn-ghost" id="authToggleBtn" style="border:none; padding-left:0;">Need an account? Sign up</button>
+      <button type="button" class="btn btn-primary" id="authSubmitBtn">Sign in</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="mfaChallengeOverlay">
+  <div class="modal" style="max-width:360px;">
+    <h2>Enter your code</h2>
+    <p style="font-size:12.5px; color:#6b6650; margin-bottom:14px;">Open your authenticator app and enter the 6-digit code for The Stacks.</p>
+    <div class="field">
+      <label>Verification code</label>
+      <input type="text" id="mfaChallengeCode" inputmode="numeric" maxlength="6" placeholder="123456" autocomplete="one-time-code">
+    </div>
+    <div id="mfaChallengeError" style="color:var(--rust); font-size:12px; margin-bottom:10px; display:none;"></div>
+    <div class="modal-actions" style="justify-content:space-between;">
+      <button type="button" class="btn btn-ghost" id="mfaChallengeSignOutBtn" style="border:none; padding-left:0;">Sign out instead</button>
+      <button type="button" class="btn btn-primary" id="mfaChallengeSubmitBtn">Verify</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="helpOverlay">
+  <div class="modal help-modal">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px;">
+      <h2>The Stacks — User Guide</h2>
+      <button type="button" class="btn btn-ghost" id="helpCloseBtn" style="padding:6px 10px;">✕</button>
+    </div>
+
+    <h3>Getting started</h3>
+    <ol>
+      <li>On first visit, sign in — or tap <strong>"Need an account? Sign up"</strong>, enter an email and password, and submit.</li>
+      <li>Check your email for a confirmation link, click it, then come back and sign in.</li>
+      <li>Your collection is empty at first — start adding records.</li>
+    </ol>
+
+    <h3>Installing it as an app on your phone</h3>
+    <p><strong>iPhone:</strong> open the link in <strong>Safari</strong> (must be Safari). Tap the Share icon → <strong>Add to Home Screen</strong>.</p>
+    <p><strong>Android:</strong> open the link in Chrome. Tap the install banner, or the menu (⋮) → <strong>Install app</strong>.</p>
+
+    <h3>Adding a record</h3>
+    <p>Tap <strong>+ Add Record</strong>. Three ways to fill it in:</p>
+    <ul>
+      <li><strong>Search by name</strong> — type artist/album in the MusicBrainz lookup box. Most fields, including cover art, fill in automatically.</li>
+      <li><strong>Scan the barcode</strong> — tap 📷 Scan, allow camera access, hold the barcode steady in frame.</li>
+      <li><strong>Type the barcode number</strong> — if scanning doesn't work, type the UPC digits and hit Look up.</li>
+    </ul>
+    <p>Everything is editable afterward, however you started.</p>
+
+    <h3>Browsing your collection</h3>
+    <p>The app opens on <strong>Stacks</strong> — records grouped into piles by genre. Tap a stack to open it.</p>
+    <ul>
+      <li><strong>★ Set as stack cover</strong> — inside an opened stack, star a record to make it that genre's cover.</li>
+      <li><strong>Search or filter</strong> jumps into a filtered view; use <strong>← Back to Stacks</strong> to return.</li>
+      <li><strong>Sort</strong> by recently added, artist, year, or value.</li>
+    </ul>
+
+    <h3>Editing and deleting</h3>
+    <p>Each card has a pencil (✎) to edit and an X to delete. Deletion is permanent — there's no undo.</p>
+
+    <h3>Security</h3>
+    <p>Tap <strong>🔒 Security</strong> to turn on two-factor authentication. Scan the QR code with an authenticator app, confirm with the 6-digit code, and you'll need it plus your password at every sign-in from then on.</p>
+    <p><strong>There's no recovery code.</strong> Losing your authenticator app means losing access — keep the setup QR/key somewhere safe if you enable this.</p>
+
+    <h3>A few notes</h3>
+    <ul>
+      <li>Your collection is private — no one else using this app can see your records, and you can't see theirs.</li>
+      <li>Lookups need internet. Browsing your existing collection works offline once the app has loaded.</li>
+      <li>If something looks off after an update, fully close and reopen the app.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="overlay" id="securityOverlay">
+  <div class="modal" style="max-width:400px;">
+    <h2>Two-factor authentication</h2>
+
+    <div id="mfaOffState" style="display:none;">
+      <p style="font-size:12.5px; color:#6b6650; margin-bottom:14px;">Adds a second step at sign-in using an authenticator app (Google Authenticator, Authy, 1Password, etc.), on top of your password.</p>
+      <div class="modal-actions" style="justify-content:flex-end;">
+        <button type="button" class="btn btn-ghost" id="securityCloseBtn1">Close</button>
+        <button type="button" class="btn btn-primary" id="mfaEnableBtn">Enable 2FA</button>
+      </div>
+    </div>
+
+    <div id="mfaEnrollState" style="display:none;">
+      <p style="font-size:12.5px; color:#6b6650; margin-bottom:10px;">Scan this with your authenticator app:</p>
+      <div style="display:flex; justify-content:center; margin-bottom:10px;">
+        <img id="mfaQrCode" src="" alt="QR code" style="width:180px; height:180px; border:1px solid rgba(26,24,21,0.15); border-radius:3px;">
+      </div>
+      <p style="font-size:11px; color:#6b6650; margin-bottom:4px;">Can't scan? Enter this code manually:</p>
+      <div id="mfaSecret" style="font-family:'IBM Plex Mono',monospace; font-size:11.5px; background:#fff; border:1px solid rgba(26,24,21,0.15); border-radius:3px; padding:8px; word-break:break-all; margin-bottom:14px;"></div>
+      <div class="field">
+        <label>Enter the 6-digit code from the app to confirm</label>
+        <input type="text" id="mfaEnrollCode" inputmode="numeric" maxlength="6" placeholder="123456">
+      </div>
+      <div id="mfaEnrollError" style="color:var(--rust); font-size:12px; margin-bottom:10px; display:none;"></div>
+      <div class="modal-actions" style="justify-content:space-between;">
+        <button type="button" class="btn btn-ghost" id="mfaEnrollCancelBtn" style="border:none; padding-left:0;">Cancel</button>
+        <button type="button" class="btn btn-primary" id="mfaEnrollConfirmBtn">Confirm</button>
+      </div>
+    </div>
+
+    <div id="mfaOnState" style="display:none;">
+      <p style="font-size:13px; margin-bottom:14px;">✅ Two-factor authentication is <strong>on</strong>. You'll be asked for a code from your authenticator app each time you sign in.</p>
+      <div class="modal-actions" style="justify-content:space-between;">
+        <button type="button" class="btn btn-ghost" id="securityCloseBtn2">Close</button>
+        <button type="button" class="btn btn-ghost" id="mfaDisableBtn" style="border-color:var(--rust); color:var(--rust);">Turn off 2FA</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h2 id="modalTitle">Add Record</h2>
+
+    <div class="field" id="lookupField">
+      <label>Look up on MusicBrainz</label>
+      <div style="display:flex; gap:6px;">
+        <input type="text" id="lookupQuery" placeholder="e.g. Kind of Blue Miles Davis">
+        <button type="button" class="btn btn-ghost" id="lookupBtn" style="white-space:nowrap;">Search</button>
+      </div>
+      <div style="display:flex; gap:6px; margin-top:8px;">
+        <input type="text" id="barcodeQuery" placeholder="UPC / barcode number" inputmode="numeric">
+        <button type="button" class="btn btn-ghost" id="barcodeBtn" style="white-space:nowrap;">Look up</button>
+        <button type="button" class="btn btn-ghost" id="scanBtn" style="white-space:nowrap;">📷 Scan</button>
+      </div>
+      <div id="scannerBox" style="display:none; margin-top:8px;">
+        <div id="scannerViewport" style="position:relative; width:100%; height:220px; background:#000; border-radius:3px; overflow:hidden;"></div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:6px;">
+          <span class="lookup-status" style="margin-top:0;">Hold the barcode steady in frame.</span>
+          <button type="button" class="btn btn-ghost" id="scanCancelBtn" style="padding:6px 10px;">Stop</button>
+        </div>
+      </div>
+      <div id="lookupResults"></div>
+    </div>
+
+    <form id="recordForm">
+      <input type="hidden" id="recordId">
+      <div class="field">
+        <label>Album *</label>
+        <input type="text" id="album" required>
+      </div>
+      <div class="field">
+        <label>Artist *</label>
+        <input type="text" id="artist" required>
+      </div>
+      <div class="field">
+        <label>Cover art URL</label>
+        <div style="display:flex; gap:8px; align-items:flex-start;">
+          <img id="coverPreview" src="" alt="" style="width:52px; height:52px; object-fit:cover; border-radius:2px; border:1px solid rgba(26,24,21,0.15); display:none; flex-shrink:0;">
+          <input type="text" id="coverUrl" placeholder="Fills in automatically from lookup, or paste your own">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Year</label>
+          <input type="text" id="year" placeholder="1971" inputmode="numeric">
+        </div>
+        <div class="field">
+          <label>Genre</label>
+          <input type="text" id="genre" placeholder="Soul, Jazz, Rock…">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Format</label>
+          <select id="format">
+            <option>LP</option>
+            <option>7" Single</option>
+            <option>12" Single</option>
+            <option>Box Set</option>
+            <option>Cassette</option>
+            <option>CD</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Condition</label>
+          <select id="condition">
+            <option value="M">Mint (M)</option>
+            <option value="NM">Near Mint (NM)</option>
+            <option value="VG" selected>Very Good (VG)</option>
+            <option value="G">Good (G)</option>
+          </select>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Release type</label>
+          <input type="text" id="releaseType" placeholder="Album, EP, Live, Compilation…">
+        </div>
+        <div class="field">
+          <label>Country</label>
+          <input type="text" id="country" placeholder="US, UK, JP…">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Label</label>
+          <input type="text" id="label" placeholder="Blue Note, Sub Pop…">
+        </div>
+        <div class="field">
+          <label>Catalog #</label>
+          <input type="text" id="catalogNumber" placeholder="BST 84195">
+        </div>
+      </div>
+      <div class="field">
+        <label>Track listing</label>
+        <textarea id="tracklist" rows="3" placeholder="Fills in automatically from lookup, or type your own — one track per line"></textarea>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Purchase price ($)</label>
+          <input type="text" id="price" inputmode="decimal" placeholder="0.00">
+        </div>
+        <div class="field">
+          <label>Purchase date</label>
+          <input type="date" id="purchaseDate">
+        </div>
+      </div>
+      <div class="field">
+        <label>Notes</label>
+        <textarea id="notes" rows="2" placeholder="Pressing details, where you found it, dedication, etc."></textarea>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" id="cancelBtn">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save Record</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+// ---- SUPABASE CONFIG ----
+// Fill these in from Project Settings → API in your Supabase dashboard.
+// The anon key is safe to expose in client code — it's designed for this,
+// and your Row Level Security policies are what actually protect the data.
+const SUPABASE_URL = 'https://jqtibmsqlzcagydnnwpg.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_RjMrtGKMZZBL1WzR_DdG3w_xSYJkWfV';
+
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+let records = [];
+let editingId = null;
+let currentUser = null;
+
+const el = id => document.getElementById(id);
+const crate = el('crate');
+const overlay = el('overlay');
+const form = el('recordForm');
+
+// ---- AUTH ----
+let authMode = 'signin'; // or 'signup'
+
+el('authToggleBtn').addEventListener('click', () => {
+  authMode = authMode === 'signin' ? 'signup' : 'signin';
+  el('authTitle').textContent = authMode === 'signin' ? 'Sign in' : 'Create account';
+  el('authSubmitBtn').textContent = authMode === 'signin' ? 'Sign in' : 'Sign up';
+  el('authToggleBtn').textContent = authMode === 'signin' ? 'Need an account? Sign up' : 'Have an account? Sign in';
+  el('authError').style.display = 'none';
+  el('authStatus').style.display = 'none';
+});
+
+el('authSubmitBtn').addEventListener('click', async () => {
+  const email = el('authEmail').value.trim();
+  const password = el('authPassword').value;
+  el('authError').style.display = 'none';
+  el('authStatus').style.display = 'none';
+  if (!email || !password) {
+    el('authError').textContent = 'Enter both an email and a password.';
+    el('authError').style.display = 'block';
+    return;
+  }
+  el('authSubmitBtn').disabled = true;
+  try {
+    if (authMode === 'signup') {
+      const { error } = await sb.auth.signUp({ email, password });
+      if (error) throw error;
+      el('authStatus').textContent = 'Account created. Check your email to confirm, then sign in.';
+      el('authStatus').style.display = 'block';
+    } else {
+      const { error } = await sb.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+    }
+  } catch (err) {
+    el('authError').textContent = err.message || 'Something went wrong.';
+    el('authError').style.display = 'block';
+  }
+  el('authSubmitBtn').disabled = false;
+});
+
+el('signOutBtn').addEventListener('click', async () => {
+  await sb.auth.signOut();
+});
+
+sb.auth.onAuthStateChange((_event, session) => {
+  currentUser = session?.user || null;
+  if (currentUser) {
+    checkAalAndProceed();
+  } else {
+    el('loginOverlay').classList.add('open');
+    el('mfaChallengeOverlay').classList.remove('open');
+    el('appBody').style.display = 'none';
+    el('signOutBtn').style.display = 'none';
+    el('securityBtn').style.display = 'none';
+    el('helpBtn').style.display = 'none';
+    el('userEmail').textContent = '';
+    records = [];
+  }
+});
+
+async function checkAalAndProceed() {
+  const { data, error } = await sb.auth.mfa.getAuthenticatorAssuranceLevel();
+  if (error) {
+    console.error(error);
+    return;
+  }
+  if (data.nextLevel === 'aal2' && data.currentLevel !== data.nextLevel) {
+    // User has MFA enrolled and hasn't completed the second factor yet this session.
+    el('loginOverlay').classList.remove('open');
+    el('appBody').style.display = 'none';
+    el('securityBtn').style.display = 'none';
+    el('helpBtn').style.display = 'none';
+    el('signOutBtn').style.display = 'none';
+    el('mfaChallengeOverlay').classList.add('open');
+    el('mfaChallengeCode').value = '';
+    el('mfaChallengeError').style.display = 'none';
+    el('mfaChallengeCode').focus();
+  } else {
+    el('loginOverlay').classList.remove('open');
+    el('mfaChallengeOverlay').classList.remove('open');
+    el('appBody').style.display = 'block';
+    el('signOutBtn').style.display = 'inline-block';
+    el('securityBtn').style.display = 'inline-block';
+    el('helpBtn').style.display = 'inline-block';
+    el('userEmail').textContent = currentUser.email;
+    loadRecords();
+  }
+}
+
+// ---- MFA: sign-in challenge (second factor) ----
+el('mfaChallengeSubmitBtn').addEventListener('click', async () => {
+  const code = el('mfaChallengeCode').value.trim();
+  el('mfaChallengeError').style.display = 'none';
+  if (!code) return;
+  el('mfaChallengeSubmitBtn').disabled = true;
+  try {
+    const { data: factorsData, error: factorsErr } = await sb.auth.mfa.listFactors();
+    if (factorsErr) throw factorsErr;
+    const factor = (factorsData.totp || [])[0];
+    if (!factor) throw new Error('No authenticator factor found.');
+    const { data: challenge, error: challengeErr } = await sb.auth.mfa.challenge({ factorId: factor.id });
+    if (challengeErr) throw challengeErr;
+    const { error: verifyErr } = await sb.auth.mfa.verify({
+      factorId: factor.id, challengeId: challenge.id, code
+    });
+    if (verifyErr) throw verifyErr;
+    checkAalAndProceed();
+  } catch (err) {
+    el('mfaChallengeError').textContent = err.message || 'Invalid code, try again.';
+    el('mfaChallengeError').style.display = 'block';
+  }
+  el('mfaChallengeSubmitBtn').disabled = false;
+});
+el('mfaChallengeCode').addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); el('mfaChallengeSubmitBtn').click(); }
+});
+el('mfaChallengeSignOutBtn').addEventListener('click', async () => {
+  await sb.auth.signOut();
+});
+
+// ---- MFA: security modal (enroll / disable) ----
+let pendingFactorId = null;
+
+function showMfaState(state) {
+  el('mfaOffState').style.display = state === 'off' ? 'block' : 'none';
+  el('mfaEnrollState').style.display = state === 'enrolling' ? 'block' : 'none';
+  el('mfaOnState').style.display = state === 'on' ? 'block' : 'none';
+}
+
+el('securityBtn').addEventListener('click', async () => {
+  el('securityOverlay').classList.add('open');
+  const { data, error } = await sb.auth.mfa.listFactors();
+  if (error) { console.error(error); return; }
+  const verified = (data.totp || []).find(f => f.status === 'verified');
+  showMfaState(verified ? 'on' : 'off');
+});
+[el('securityCloseBtn1'), el('securityCloseBtn2')].forEach(btn =>
+  btn.addEventListener('click', () => el('securityOverlay').classList.remove('open'))
+);
+el('securityOverlay').addEventListener('click', e => {
+  if (e.target === el('securityOverlay')) el('securityOverlay').classList.remove('open');
+});
+
+el('helpBtn').addEventListener('click', () => {
+  el('helpOverlay').classList.add('open');
+});
+el('helpCloseBtn').addEventListener('click', () => el('helpOverlay').classList.remove('open'));
+el('helpOverlay').addEventListener('click', e => {
+  if (e.target === el('helpOverlay')) el('helpOverlay').classList.remove('open');
+});
+
+el('mfaEnableBtn').addEventListener('click', async () => {
+  try {
+    const { data, error } = await sb.auth.mfa.enroll({
+      factorType: 'totp', friendlyName: 'Authenticator app'
+    });
+    if (error) throw error;
+    pendingFactorId = data.id;
+    el('mfaQrCode').src = data.totp.qr_code;
+    el('mfaSecret').textContent = data.totp.secret;
+    el('mfaEnrollCode').value = '';
+    el('mfaEnrollError').style.display = 'none';
+    showMfaState('enrolling');
+  } catch (err) {
+    alert('Could not start enrollment: ' + err.message);
+  }
+});
+
+el('mfaEnrollConfirmBtn').addEventListener('click', async () => {
+  const code = el('mfaEnrollCode').value.trim();
+  el('mfaEnrollError').style.display = 'none';
+  if (!code || !pendingFactorId) return;
+  el('mfaEnrollConfirmBtn').disabled = true;
+  try {
+    const { data: challenge, error: challengeErr } = await sb.auth.mfa.challenge({ factorId: pendingFactorId });
+    if (challengeErr) throw challengeErr;
+    const { error: verifyErr } = await sb.auth.mfa.verify({
+      factorId: pendingFactorId, challengeId: challenge.id, code
+    });
+    if (verifyErr) throw verifyErr;
+    pendingFactorId = null;
+    showMfaState('on');
+  } catch (err) {
+    el('mfaEnrollError').textContent = err.message || 'Invalid code, try again.';
+    el('mfaEnrollError').style.display = 'block';
+  }
+  el('mfaEnrollConfirmBtn').disabled = false;
+});
+
+el('mfaEnrollCancelBtn').addEventListener('click', async () => {
+  if (pendingFactorId) {
+    await sb.auth.mfa.unenroll({ factorId: pendingFactorId }).catch(() => {});
+    pendingFactorId = null;
+  }
+  showMfaState('off');
+});
+
+el('mfaDisableBtn').addEventListener('click', async () => {
+  if (!confirm('Turn off two-factor authentication? You\'ll only need your password to sign in after this.')) return;
+  try {
+    const { data, error } = await sb.auth.mfa.listFactors();
+    if (error) throw error;
+    const factor = (data.totp || [])[0];
+    if (factor) {
+      const { error: unenrollErr } = await sb.auth.mfa.unenroll({ factorId: factor.id });
+      if (unenrollErr) throw unenrollErr;
+    }
+    showMfaState('off');
+  } catch (err) {
+    alert('Could not disable 2FA: ' + err.message);
+  }
+});
+
+// ---- RECORD CRUD (Supabase) ----
+async function loadRecords() {
+  const { data, error } = await sb
+    .from('records')
+    .select('*')
+    .order('added_at', { ascending: false });
+  if (error) {
+    console.error(error);
+    crate.innerHTML = `<div class="empty-state">Could not load your collection: ${escapeHtml(error.message)}</div>`;
+    return;
+  }
+  records = (data || []).map(r => ({
+    id: r.id,
+    album: r.album,
+    artist: r.artist,
+    year: r.year || '',
+    genre: r.genre || '',
+    format: r.format,
+    condition: r.condition,
+    price: r.price || 0,
+    purchaseDate: r.purchase_date || '',
+    notes: r.notes || '',
+    addedAt: r.added_at,
+    coverUrl: r.cover_url || '',
+    label: r.label || '',
+    catalogNumber: r.catalog_number || '',
+    country: r.country || '',
+    releaseType: r.release_type || '',
+    tracklist: r.tracklist || '',
+    isFace: r.is_face || false
+  }));
+  render();
+}
+
+function uid() { return 'r' + Date.now() + Math.random().toString(36).slice(2, 7); }
+
+async function fetchCoverArt(kind, mbid) {
+  // kind is 'release-group' (from name search) or 'release' (from barcode search)
+  try {
+    const url = `https://coverartarchive.org/${kind}/${mbid}/front-250`;
+    const res = await fetch(url, { method: 'HEAD' });
+    if (res.ok) return url;
+  } catch (e) { /* no art on file — that's common, not an error */ }
+  return null;
+}
+
+function extractReleaseDetails(release) {
+  const labelInfo = (release['label-info'] || [])[0];
+  const label = labelInfo && labelInfo.label ? labelInfo.label.name : '';
+  const catalogNumber = labelInfo ? (labelInfo['catalog-number'] || '') : '';
+  const country = release.country || '';
+  const media = (release.media || [])[0];
+  let tracklist = '';
+  if (media && media.tracks && media.tracks.length) {
+    tracklist = media.tracks.map(t => {
+      const ms = t.length;
+      const dur = ms ? ` (${Math.floor(ms/60000)}:${String(Math.round((ms%60000)/1000)).padStart(2,'0')})` : '';
+      return `${t.number}. ${t.title}${dur}`;
+    }).join('\n');
+  }
+  return { label, catalogNumber, country, tracklist };
+}
+
+async function fetchReleaseDetails(releaseGroupId) {
+  try {
+    const url = `https://musicbrainz.org/ws/2/release?release-group=${releaseGroupId}&inc=labels+recordings+media&fmt=json&limit=15`;
+    const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const releases = data.releases || [];
+    if (releases.length === 0) return null;
+    const vinylRelease = releases.find(r => (r.media || []).some(m => m.format === 'Vinyl'));
+    return extractReleaseDetails(vinylRelease || releases[0]);
+  } catch (e) {
+    return null;
+  }
+}
+
+async function searchMusicBrainz(query) {
+  const resultsEl = el('lookupResults');
+  resultsEl.innerHTML = '<div class="lookup-status">Searching…</div>';
+  try {
+    const url = 'https://musicbrainz.org/ws/2/release-group/?query=' +
+      encodeURIComponent(query) + '&fmt=json&limit=8';
+    const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+    if (!res.ok) throw new Error('Lookup failed');
+    const data = await res.json();
+    const hits = data['release-groups'] || [];
+    if (hits.length === 0) {
+      resultsEl.innerHTML = '<div class="lookup-status">No matches. Try a simpler search, or just enter it manually below.</div>';
+      return;
+    }
+    resultsEl.innerHTML = hits.map((h, i) => {
+      const artist = (h['artist-credit'] || []).map(a => a.name).join(', ');
+      const year = h['first-release-date'] ? h['first-release-date'].slice(0, 4) : '';
+      const type = h['primary-type'] || '';
+      return `<div class="lookup-hit" data-idx="${i}">
+        <div>
+          <div class="lh-title">${escapeHtml(h.title || '')}</div>
+          <div class="lh-sub">${escapeHtml(artist)}${year ? ' · ' + year : ''}${type ? ' · ' + escapeHtml(type) : ''}</div>
+        </div>
+      </div>`;
+    }).join('');
+    resultsEl.querySelectorAll('.lookup-hit').forEach(node => {
+      node.addEventListener('click', async () => {
+        const h = hits[parseInt(node.dataset.idx)];
+        const artist = (h['artist-credit'] || []).map(a => a.name).join(', ');
+        const year = h['first-release-date'] ? h['first-release-date'].slice(0, 4) : '';
+        el('album').value = h.title || '';
+        el('artist').value = artist;
+        if (year) el('year').value = year;
+        if (h.tags && h.tags.length) {
+          el('genre').value = h.tags.sort((a,b) => b.count - a.count)[0].name;
+        }
+        el('releaseType').value = [h['primary-type'], ...(h['secondary-types']||[])].filter(Boolean).join(', ');
+        resultsEl.innerHTML = '<div class="lookup-status">Filled in below — checking for cover art and release details…</div>';
+        const [art, details] = await Promise.all([
+          h.id ? fetchCoverArt('release-group', h.id) : null,
+          h.id ? fetchReleaseDetails(h.id) : null
+        ]);
+        if (art) {
+          el('coverUrl').value = art;
+          updateCoverPreview();
+        }
+        if (details) {
+          el('label').value = details.label;
+          el('catalogNumber').value = details.catalogNumber;
+          el('country').value = details.country;
+          el('tracklist').value = details.tracklist;
+        }
+        resultsEl.innerHTML = art
+          ? '<div class="lookup-status">Filled in below, cover art found — adjust anything, then save.</div>'
+          : '<div class="lookup-status">Filled in below — no cover art on file, paste a URL if you have one.</div>';
+      });
+    });
+  } catch (e) {
+    resultsEl.innerHTML = '<div class="lookup-status">Lookup failed. Check your connection, or enter it manually below.</div>';
+  }
+}
+
+async function searchByBarcode(code) {
+  const resultsEl = el('lookupResults');
+  resultsEl.innerHTML = '<div class="lookup-status">Looking up barcode…</div>';
+  try {
+    const url = 'https://musicbrainz.org/ws/2/release/?query=barcode:' +
+      encodeURIComponent(code) + '&fmt=json&limit=8&inc=labels+recordings+media+release-groups';
+    const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+    if (!res.ok) throw new Error('Lookup failed');
+    const data = await res.json();
+    const hits = data['releases'] || [];
+    if (hits.length === 0) {
+      resultsEl.innerHTML = '<div class="lookup-status">No release found for that barcode. Try the name search above, or enter it manually.</div>';
+      return;
+    }
+    resultsEl.innerHTML = hits.map((h, i) => {
+      const artist = (h['artist-credit'] || []).map(a => a.name).join(', ');
+      const year = h.date ? h.date.slice(0, 4) : '';
+      const country = h.country ? ' · ' + h.country : '';
+      const fmt = (h.media && h.media[0] && h.media[0].format) ? ' · ' + h.media[0].format : '';
+      return `<div class="lookup-hit" data-idx="${i}">
+        <div>
+          <div class="lh-title">${escapeHtml(h.title || '')}</div>
+          <div class="lh-sub">${escapeHtml(artist)}${year ? ' · ' + year : ''}${country}${fmt}</div>
+        </div>
+      </div>`;
+    }).join('');
+    resultsEl.querySelectorAll('.lookup-hit').forEach(node => {
+      node.addEventListener('click', async () => {
+        const h = hits[parseInt(node.dataset.idx)];
+        const artist = (h['artist-credit'] || []).map(a => a.name).join(', ');
+        const year = h.date ? h.date.slice(0, 4) : '';
+        const fmt = (h.media && h.media[0] && h.media[0].format) ? h.media[0].format : '';
+        el('album').value = h.title || '';
+        el('artist').value = artist;
+        if (year) el('year').value = year;
+        if (fmt === 'Vinyl') el('format').value = 'LP';
+        const rg = h['release-group'];
+        if (rg) {
+          el('releaseType').value = [rg['primary-type'], ...(rg['secondary-types']||[])].filter(Boolean).join(', ');
+        }
+        const details = extractReleaseDetails(h);
+        el('label').value = details.label;
+        el('catalogNumber').value = details.catalogNumber;
+        el('country').value = details.country;
+        el('tracklist').value = details.tracklist;
+        resultsEl.innerHTML = '<div class="lookup-status">Filled in below — checking for cover art…</div>';
+        const art = h.id ? await fetchCoverArt('release', h.id) : null;
+        if (art) {
+          el('coverUrl').value = art;
+          updateCoverPreview();
+          resultsEl.innerHTML = '<div class="lookup-status">Filled in below, cover art found — adjust anything, then save.</div>';
+        } else {
+          resultsEl.innerHTML = '<div class="lookup-status">Filled in below — no cover art on file, paste a URL if you have one.</div>';
+        }
+      });
+    });
+  } catch (e) {
+    resultsEl.innerHTML = '<div class="lookup-status">Lookup failed. Check your connection, or enter it manually.</div>';
+  }
+}
+
+el('barcodeBtn').addEventListener('click', () => {
+  const code = el('barcodeQuery').value.trim();
+  if (code) searchByBarcode(code);
+});
+el('barcodeQuery').addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); el('barcodeBtn').click(); }
+});
+
+let scannerRunning = false;
+
+function startScanner() {
+  el('scannerBox').style.display = 'block';
+  el('lookupResults').innerHTML = '';
+  if (typeof Quagga === 'undefined') {
+    el('lookupResults').innerHTML = '<div class="lookup-status">Scanner library failed to load. Enter the barcode number manually above.</div>';
+    el('scannerBox').style.display = 'none';
+    return;
+  }
+  Quagga.init({
+    inputStream: {
+      type: 'LiveStream',
+      target: document.querySelector('#scannerViewport'),
+      constraints: { facingMode: 'environment' }
+    },
+    decoder: {
+      readers: ['ean_reader', 'upc_reader', 'upc_e_reader']
+    },
+    locate: true
+  }, err => {
+    if (err) {
+      el('lookupResults').innerHTML = '<div class="lookup-status">Could not access camera. Check permissions, or enter the barcode manually above.</div>';
+      el('scannerBox').style.display = 'none';
+      return;
+    }
+    Quagga.start();
+    scannerRunning = true;
+  });
+
+  Quagga.onDetected(handleDetected);
+}
+
+function handleDetected(result) {
+  const code = result?.codeResult?.code;
+  if (!code) return;
+  stopScanner();
+  el('barcodeQuery').value = code;
+  searchByBarcode(code);
+}
+
+function stopScanner() {
+  if (scannerRunning && typeof Quagga !== 'undefined') {
+    Quagga.offDetected(handleDetected);
+    Quagga.stop();
+    scannerRunning = false;
+  }
+  el('scannerBox').style.display = 'none';
+}
+
+el('scanBtn').addEventListener('click', startScanner);
+el('scanCancelBtn').addEventListener('click', stopScanner);
+
+el('lookupBtn').addEventListener('click', () => {
+  const q = el('lookupQuery').value.trim();
+  if (q) searchMusicBrainz(q);
+});
+el('lookupQuery').addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); el('lookupBtn').click(); }
+});
+
+function updateCoverPreview() {
+  const url = el('coverUrl').value.trim();
+  const img = el('coverPreview');
+  if (url) {
+    img.src = url;
+    img.style.display = 'block';
+  } else {
+    img.style.display = 'none';
+  }
+}
+el('coverUrl').addEventListener('input', updateCoverPreview);
+el('coverPreview').addEventListener('error', () => { el('coverPreview').style.display = 'none'; });
+
+function openModal(record) {
+  form.reset();
+  stopScanner();
+  el('lookupQuery').value = '';
+  el('barcodeQuery').value = '';
+  el('lookupResults').innerHTML = '';
+  el('condition').value = 'VG';
+  el('coverUrl').value = '';
+  updateCoverPreview();
+  if (record) {
+    editingId = record.id;
+    el('modalTitle').textContent = 'Edit Record';
+    el('recordId').value = record.id;
+    el('album').value = record.album || '';
+    el('artist').value = record.artist || '';
+    el('year').value = record.year || '';
+    el('genre').value = record.genre || '';
+    el('format').value = record.format || 'LP';
+    el('condition').value = record.condition || 'VG';
+    el('price').value = record.price || '';
+    el('purchaseDate').value = record.purchaseDate || '';
+    el('notes').value = record.notes || '';
+    el('coverUrl').value = record.coverUrl || '';
+    el('releaseType').value = record.releaseType || '';
+    el('country').value = record.country || '';
+    el('label').value = record.label || '';
+    el('catalogNumber').value = record.catalogNumber || '';
+    el('tracklist').value = record.tracklist || '';
+    updateCoverPreview();
+  } else {
+    editingId = null;
+    el('modalTitle').textContent = 'Add Record';
+  }
+  overlay.classList.add('open');
+  el('album').focus();
+}
+
+function closeModal() { overlay.classList.remove('open'); stopScanner(); }
+
+el('addBtn').addEventListener('click', () => openModal(null));
+el('cancelBtn').addEventListener('click', closeModal);
+overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
+
+form.addEventListener('submit', async e => {
+  e.preventDefault();
+  const payload = {
+    user_id: currentUser.id,
+    album: el('album').value.trim(),
+    artist: el('artist').value.trim(),
+    year: el('year').value.trim(),
+    genre: el('genre').value.trim(),
+    format: el('format').value,
+    condition: el('condition').value,
+    price: parseFloat(el('price').value) || 0,
+    purchase_date: el('purchaseDate').value || null,
+    notes: el('notes').value.trim(),
+    cover_url: el('coverUrl').value.trim() || null,
+    release_type: el('releaseType').value.trim() || null,
+    country: el('country').value.trim() || null,
+    label: el('label').value.trim() || null,
+    catalog_number: el('catalogNumber').value.trim() || null,
+    tracklist: el('tracklist').value.trim() || null,
+    added_at: editingId ? (records.find(r => r.id === editingId)?.addedAt || Date.now()) : Date.now()
+  };
+
+  const submitBtn = form.querySelector('button[type="submit"]');
+  submitBtn.disabled = true;
+  let error;
+  if (editingId) {
+    ({ error } = await sb.from('records').update(payload).eq('id', editingId));
+  } else {
+    ({ error } = await sb.from('records').insert(payload));
+  }
+  submitBtn.disabled = false;
+
+  if (error) {
+    alert('Could not save: ' + error.message);
+    return;
+  }
+  closeModal();
+  await loadRecords();
+});
+
+async function deleteRecord(id) {
+  if (!confirm('Remove this record from your collection?')) return;
+  const { error } = await sb.from('records').delete().eq('id', id);
+  if (error) {
+    alert('Could not delete: ' + error.message);
+    return;
+  }
+  await loadRecords();
+}
+
+function renderStats() {
+  const total = records.length;
+  const value = records.reduce((sum, r) => sum + (r.price || 0), 0);
+  const genres = new Set(records.map(r => r.genre).filter(Boolean)).size;
+  const decades = {};
+  records.forEach(r => {
+    const y = parseInt(r.year);
+    if (y) {
+      const d = Math.floor(y / 10) * 10 + 's';
+      decades[d] = (decades[d] || 0) + 1;
+    }
+  });
+  const topDecade = Object.entries(decades).sort((a,b) => b[1]-a[1])[0];
+
+  el('stats').innerHTML = `
+    <div class="stat"><div class="n">${total}</div><div class="l">Record${total === 1 ? '' : 's'}</div></div>
+    <div class="stat"><div class="n">$${value.toFixed(0)}</div><div class="l">Collection Value</div></div>
+    <div class="stat"><div class="n">${genres}</div><div class="l">Genre${genres === 1 ? '' : 's'}</div></div>
+    <div class="stat"><div class="n">${topDecade ? topDecade[0] : '—'}</div><div class="l">Top Decade</div></div>
+  `;
+}
+
+function renderGenreFilter() {
+  const current = el('filterGenre').value;
+  const genres = [...new Set(records.map(r => r.genre).filter(Boolean))].sort();
+  const hasUnsorted = records.some(r => !r.genre);
+  el('filterGenre').innerHTML = '<option value="">All genres</option>' +
+    genres.map(g => `<option value="${escapeAttr(g)}">${escapeHtml(g)}</option>`).join('') +
+    (hasUnsorted ? '<option value="__none__">No genre</option>' : '');
+  el('filterGenre').value = current;
+}
+
+let showAllList = false;
+
+function render() {
+  renderStats();
+  renderGenreFilter();
+
+  const search = el('search').value.toLowerCase();
+  const genreFilter = el('filterGenre').value;
+  const inFlatMode = search.trim() !== '' || genreFilter !== '' || showAllList;
+
+  el('backBar').style.display = inFlatMode ? 'block' : 'none';
+  el('stacksGrid').style.display = inFlatMode ? 'none' : 'grid';
+  el('crate').style.display = inFlatMode ? 'grid' : 'none';
+
+  if (inFlatMode) {
+    renderFlatCrate(search, genreFilter);
+  } else {
+    renderStacksGrid();
+  }
+}
+
+function renderStacksGrid() {
+  if (records.length === 0) {
+    el('stacksGrid').innerHTML = `<div class="empty-state" style="grid-column:1/-1;">The crate is empty. Add your first record.</div>`;
+    return;
+  }
+
+  const groups = {};
+  records.forEach(r => {
+    const key = r.genre || '__none__';
+    (groups[key] = groups[key] || []).push(r);
+  });
+
+  const entries = Object.entries(groups).sort((a, b) => {
+    if (a[0] === '__none__') return 1;
+    if (b[0] === '__none__') return -1;
+    return b[1].length - a[1].length;
+  });
+
+  el('stacksGrid').innerHTML = entries.map(([genre, list]) => {
+    const face = list.find(r => r.isFace) || list[0];
+    const label = genre === '__none__' ? 'No genre' : genre;
+    const faceInner = face.coverUrl
+      ? `<img src="${escapeAttr(face.coverUrl)}" alt="" onerror="this.parentElement.innerHTML='<div class=&quot;face-fallback&quot;></div>'">`
+      : `<div class="face-fallback"></div>`;
+
+    // Pick real records for the back layers, preferring ones with cover art
+    // so the stack reflects what's actually in the genre, not filler.
+    // Layer count scales with how many records are actually in the genre —
+    // bigger piles look bigger, capped at 3 back layers so it never gets messy.
+    const layerCount = list.length >= 50 ? 3 : list.length >= 10 ? 2 : list.length >= 3 ? 1 : 0;
+    const others = list.filter(r => r.id !== face.id);
+    const withArt = others.filter(r => r.coverUrl);
+    const withoutArt = others.filter(r => !r.coverUrl);
+    const backLayers = [...withArt, ...withoutArt].slice(0, layerCount);
+
+    const sleeveInner = r => r && r.coverUrl
+      ? `<img src="${escapeAttr(r.coverUrl)}" alt="" onerror="this.parentElement.innerHTML=''">`
+      : '';
+
+    const badge = list.length > 9
+      ? `<div class="stack-badge">${list.length > 99 ? '99+' : list.length}</div>`
+      : '';
+
+    return `
+      <div class="stack-tile" onclick='exploreGenre(${JSON.stringify(genre)})'>
+        <div class="stack-visual">
+          ${backLayers[2] ? `<div class="stack-sleeve s4">${sleeveInner(backLayers[2])}</div>` : ''}
+          ${backLayers[1] ? `<div class="stack-sleeve s3">${sleeveInner(backLayers[1])}</div>` : ''}
+          ${backLayers[0] ? `<div class="stack-sleeve s2">${sleeveInner(backLayers[0])}</div>` : ''}
+          <div class="stack-sleeve face-sleeve">${faceInner}</div>
+          ${badge}
+        </div>
+        <div class="stack-label">
+          <h3>${escapeHtml(label)}</h3>
+          <div class="stack-count">${list.length} record${list.length === 1 ? '' : 's'}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function exploreGenre(genre) {
+  showAllList = false;
+  el('search').value = '';
+  el('filterGenre').value = genre === '__none__' ? '__none__' : genre;
+  render();
+}
+
+el('allRecordsBtn').addEventListener('click', () => {
+  showAllList = true;
+  el('search').value = '';
+  el('filterGenre').value = '';
+  render();
+});
+
+el('backToStacksBtn').addEventListener('click', () => {
+  showAllList = false;
+  el('search').value = '';
+  el('filterGenre').value = '';
+  render();
+});
+
+function renderFlatCrate(search, genreFilter) {
+  const sortBy = el('sortBy').value;
+
+  let list = records.filter(r => {
+    const matchesSearch = !search ||
+      r.album.toLowerCase().includes(search) ||
+      r.artist.toLowerCase().includes(search) ||
+      (r.genre || '').toLowerCase().includes(search);
+    const matchesGenre = !genreFilter ||
+      (genreFilter === '__none__' ? !r.genre : r.genre === genreFilter);
+    return matchesSearch && matchesGenre;
+  });
+
+  list.sort((a, b) => {
+    switch (sortBy) {
+      case 'artist-asc': return a.artist.localeCompare(b.artist);
+      case 'year-desc': return (parseInt(b.year)||0) - (parseInt(a.year)||0);
+      case 'year-asc': return (parseInt(a.year)||0) - (parseInt(b.year)||0);
+      case 'value-desc': return (b.price||0) - (a.price||0);
+      default: return (b.addedAt||0) - (a.addedAt||0);
+    }
+  });
+
+  if (list.length === 0) {
+    crate.innerHTML = `<div class="empty-state">No records match.</div>`;
+    return;
+  }
+
+  crate.innerHTML = list.map(r => `
+    <div class="sleeve">
+      <div class="row-actions">
+        <button class="icon-btn face-btn" onclick='toggleFace("${r.id}")' title="${r.isFace ? 'Stack cover' : 'Set as stack cover'}">${r.isFace ? '★' : '☆'}</button>
+        <button class="icon-btn edit" onclick='editRecord("${r.id}")' title="Edit">✎</button>
+        <button class="icon-btn" onclick='deleteRecord("${r.id}")' title="Delete">✕</button>
+      </div>
+      <div style="display:flex; gap:10px;">
+        ${r.coverUrl ? `<img src="${escapeAttr(r.coverUrl)}" alt="" style="width:44px; height:44px; object-fit:cover; border-radius:2px; flex-shrink:0;" onerror="this.style.display='none'">` : ''}
+        <div style="min-width:0;">
+          <h3>${escapeHtml(r.album)}</h3>
+          <div class="artist">${escapeHtml(r.artist)}</div>
+          ${r.label ? `<div style="font-size:11px; color:#8a836c; margin-top:2px;">${escapeHtml(r.label)}${r.catalogNumber ? ' · ' + escapeHtml(r.catalogNumber) : ''}</div>` : ''}
+          <div class="eyebrow" style="margin-top:4px; margin-bottom:0;">${r.year || '—'} · ${r.format}${r.releaseType ? ' · ' + escapeHtml(r.releaseType) : ''}${r.country ? ' · ' + escapeHtml(r.country) : ''}</div>
+        </div>
+      </div>
+      <div class="meta">
+        ${r.genre ? `<span class="chip">${escapeHtml(r.genre)}</span>` : ''}
+        <span class="chip condition-${r.condition}">${r.condition}</span>
+        ${r.price ? `<span class="chip">$${r.price.toFixed(2)}</span>` : ''}
+        ${r.tracklist ? `<span class="chip">${r.tracklist.split('\n').filter(Boolean).length} tracks</span>` : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+async function toggleFace(id) {
+  const record = records.find(x => x.id === id);
+  if (!record) return;
+  if (!record.genre) {
+    alert('Give this record a genre before setting it as a stack cover — covers are picked per genre.');
+    return;
+  }
+  try {
+    if (record.isFace) {
+      const { error } = await sb.from('records').update({ is_face: false }).eq('id', id);
+      if (error) throw error;
+    } else {
+      const { error: clearErr } = await sb.from('records')
+        .update({ is_face: false })
+        .eq('user_id', currentUser.id)
+        .eq('genre', record.genre);
+      if (clearErr) throw clearErr;
+      const { error: setErr } = await sb.from('records').update({ is_face: true }).eq('id', id);
+      if (setErr) throw setErr;
+    }
+    await loadRecords();
+  } catch (err) {
+    alert('Could not update stack cover: ' + err.message);
+  }
+}
+
+function escapeAttr(str) {
+  return String(str).replace(/"/g, '&quot;');
+}
+
+function editRecord(id) {
+  const r = records.find(x => x.id === id);
+  if (r) openModal(r);
+}
+
+function escapeHtml(str) {
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+
+el('search').addEventListener('input', render);
+el('sortBy').addEventListener('change', render);
+el('filterGenre').addEventListener('change', render);
+
+window.editRecord = editRecord;
+window.deleteRecord = deleteRecord;
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('service-worker.js').catch(() => {});
+  });
+}
+</script>
+</body>
+</html>
