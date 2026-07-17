@@ -247,8 +247,6 @@
     position: relative;
     box-shadow: 0 6px 16px rgba(0,0,0,0.35);
     transition: transform 0.15s ease, box-shadow 0.15s ease;
-    display: flex;
-    flex-direction: column;
     min-height: 176px;
   }
   .sleeve:hover { transform: translateY(-3px); box-shadow: 0 10px 24px rgba(0,0,0,0.45); }
@@ -258,6 +256,45 @@
     width: 6px; height: calc(100% - 28px);
     background: repeating-linear-gradient(180deg, var(--vinyl) 0 3px, transparent 3px 6px);
     opacity: 0.35;
+  }
+
+  .sleeve-layout {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+    height: 100%;
+  }
+  .sleeve-main {
+    flex: 1 1 200px;
+    display: flex;
+    flex-direction: column;
+    min-height: 176px;
+  }
+  .sleeve-tracklist {
+    flex: 1 1 180px;
+    border-left: 1px dashed rgba(26,24,21,0.15);
+    padding-left: 18px;
+    max-height: 260px;
+    overflow-y: auto;
+  }
+  .sleeve-tracklist .tl-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--amber-dim);
+    margin-bottom: 6px;
+  }
+  .sleeve-tracklist ol {
+    list-style: none;
+    font-size: 12.5px;
+    line-height: 1.65;
+    color: #3a362b;
+  }
+  .sleeve-tracklist li {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .sleeve .eyebrow {
@@ -459,7 +496,7 @@
   <div class="stats" id="stats"></div>
 
   <div class="controls">
-    <input type="text" id="search" placeholder="Search artist, album, or genre…">
+    <input type="text" id="search" name="stacks-record-search" placeholder="Search artist, album, or genre…" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false">
     <select id="sortBy">
       <option value="added-desc">Recently added</option>
       <option value="artist-asc">Artist A–Z</option>
@@ -615,11 +652,11 @@
     <div class="field" id="lookupField">
       <label>Look up on MusicBrainz</label>
       <div style="display:flex; gap:6px;">
-        <input type="text" id="lookupQuery" placeholder="e.g. Kind of Blue Miles Davis">
+        <input type="text" id="lookupQuery" placeholder="e.g. Kind of Blue Miles Davis" autocomplete="new-password">
         <button type="button" class="btn btn-ghost" id="lookupBtn" style="white-space:nowrap;">Search</button>
       </div>
       <div style="display:flex; gap:6px; margin-top:8px;">
-        <input type="text" id="barcodeQuery" placeholder="UPC / barcode number" inputmode="numeric">
+        <input type="text" id="barcodeQuery" placeholder="UPC / barcode number" inputmode="numeric" autocomplete="new-password">
         <button type="button" class="btn btn-ghost" id="barcodeBtn" style="white-space:nowrap;">Look up</button>
         <button type="button" class="btn btn-ghost" id="scanBtn" style="white-space:nowrap;">📷 Scan</button>
       </div>
@@ -637,11 +674,11 @@
       <input type="hidden" id="recordId">
       <div class="field">
         <label>Album *</label>
-        <input type="text" id="album" required>
+        <input type="text" id="album" required autocomplete="new-password">
       </div>
       <div class="field">
         <label>Artist *</label>
-        <input type="text" id="artist" required>
+        <input type="text" id="artist" required autocomplete="new-password">
       </div>
       <div class="field">
         <label>Cover art URL</label>
@@ -999,7 +1036,7 @@ function uid() { return 'r' + Date.now() + Math.random().toString(36).slice(2, 7
 async function fetchCoverArt(kind, mbid) {
   // kind is 'release-group' (from name search) or 'release' (from barcode search)
   try {
-    const url = `https://coverartarchive.org/${kind}/${mbid}/front-250`;
+    const url = `https://coverartarchive.org/${kind}/${mbid}/front-500`;
     const res = await fetch(url, { method: 'HEAD' });
     if (res.ok) return url;
   } catch (e) { /* no art on file — that's common, not an error */ }
@@ -1499,30 +1536,41 @@ function renderFlatCrate(search, genreFilter) {
     return;
   }
 
-  crate.innerHTML = list.map(r => `
+  crate.innerHTML = list.map(r => {
+    const tracks = r.tracklist ? r.tracklist.split('\n').filter(Boolean) : [];
+    return `
     <div class="sleeve">
       <div class="row-actions">
         <button class="icon-btn face-btn" onclick='toggleFace("${r.id}")' title="${r.isFace ? 'Stack cover' : 'Set as stack cover'}">${r.isFace ? '★' : '☆'}</button>
         <button class="icon-btn edit" onclick='editRecord("${r.id}")' title="Edit">✎</button>
         <button class="icon-btn" onclick='deleteRecord("${r.id}")' title="Delete">✕</button>
       </div>
-      <div style="display:flex; gap:10px;">
-        ${r.coverUrl ? `<img src="${escapeAttr(r.coverUrl)}" alt="" style="width:44px; height:44px; object-fit:cover; border-radius:2px; flex-shrink:0;" onerror="this.style.display='none'">` : ''}
-        <div style="min-width:0;">
-          <h3>${escapeHtml(r.album)}</h3>
-          <div class="artist">${escapeHtml(r.artist)}</div>
-          ${r.label ? `<div style="font-size:11px; color:#8a836c; margin-top:2px;">${escapeHtml(r.label)}${r.catalogNumber ? ' · ' + escapeHtml(r.catalogNumber) : ''}</div>` : ''}
-          <div class="eyebrow" style="margin-top:4px; margin-bottom:0;">${r.year || '—'} · ${r.format}${r.releaseType ? ' · ' + escapeHtml(r.releaseType) : ''}${r.country ? ' · ' + escapeHtml(r.country) : ''}</div>
+      <div class="sleeve-layout">
+        <div class="sleeve-main">
+          <div style="display:flex; gap:10px;">
+            ${r.coverUrl ? `<img src="${escapeAttr(r.coverUrl)}" alt="" style="width:44px; height:44px; object-fit:cover; border-radius:2px; flex-shrink:0;" onerror="this.style.display='none'">` : ''}
+            <div style="min-width:0;">
+              <h3>${escapeHtml(r.album)}</h3>
+              <div class="artist">${escapeHtml(r.artist)}</div>
+              ${r.label ? `<div style="font-size:11px; color:#8a836c; margin-top:2px;">${escapeHtml(r.label)}${r.catalogNumber ? ' · ' + escapeHtml(r.catalogNumber) : ''}</div>` : ''}
+              <div class="eyebrow" style="margin-top:4px; margin-bottom:0;">${r.year || '—'} · ${r.format}${r.releaseType ? ' · ' + escapeHtml(r.releaseType) : ''}${r.country ? ' · ' + escapeHtml(r.country) : ''}</div>
+            </div>
+          </div>
+          <div class="meta">
+            ${r.genre ? `<span class="chip">${escapeHtml(r.genre)}</span>` : ''}
+            <span class="chip condition-${r.condition}">${r.condition}</span>
+            ${r.price ? `<span class="chip">$${r.price.toFixed(2)}</span>` : ''}
+          </div>
         </div>
-      </div>
-      <div class="meta">
-        ${r.genre ? `<span class="chip">${escapeHtml(r.genre)}</span>` : ''}
-        <span class="chip condition-${r.condition}">${r.condition}</span>
-        ${r.price ? `<span class="chip">$${r.price.toFixed(2)}</span>` : ''}
-        ${r.tracklist ? `<span class="chip">${r.tracklist.split('\n').filter(Boolean).length} tracks</span>` : ''}
+        ${tracks.length ? `
+        <div class="sleeve-tracklist">
+          <div class="tl-label">Track listing</div>
+          <ol>${tracks.map(t => `<li>${escapeHtml(t)}</li>`).join('')}</ol>
+        </div>` : ''}
       </div>
     </div>
-  `).join('');
+  `;
+  }).join('');
 }
 
 async function toggleFace(id) {
