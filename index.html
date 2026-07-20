@@ -1571,7 +1571,10 @@ function iconForGenre(genre) {
 }
 
   el('stacksGrid').innerHTML = entries.map(([genre, list]) => {
-    const face = list.find(r => r.isFace) || list[0];
+    // Respect an explicit star, but otherwise prefer any record that
+    // actually has cover art over just taking whichever came first —
+    // a genre shouldn't show a blank tile when art exists in the group.
+    const face = list.find(r => r.isFace) || list.find(r => r.coverUrl) || list[0];
     const label = genre === '__none__' ? 'No genre' : genre;
     const fallbackHtml = `<div class="face-fallback"><i class="ti ${iconForGenre(genre)}"></i></div>`;
     const faceInner = face.coverUrl
