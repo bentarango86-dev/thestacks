@@ -536,6 +536,11 @@
       <option value="year-asc">Year (oldest)</option>
       <option value="value-desc">Value (high–low)</option>
     </select>
+    <select id="stackSortBy">
+      <option value="genre-asc">Genre A–Z</option>
+      <option value="count-desc">Most records</option>
+      <option value="count-asc">Fewest records</option>
+    </select>
     <select id="filterGenre"><option value="">All genres</option></select>
     <button class="btn btn-primary" id="addBtn">+ Add Record</button>
   </div>
@@ -1449,6 +1454,8 @@ function render() {
   el('allRecordsTabBtn').classList.toggle('active', inFlatMode);
   el('stacksGrid').style.display = inFlatMode ? 'none' : 'grid';
   el('crate').style.display = inFlatMode ? 'grid' : 'none';
+  el('sortBy').style.display = inFlatMode ? '' : 'none';
+  el('stackSortBy').style.display = inFlatMode ? 'none' : '';
 
   if (inFlatMode) {
     renderFlatCrate(search, genreFilter);
@@ -1469,10 +1476,15 @@ function renderStacksGrid() {
     (groups[key] = groups[key] || []).push(r);
   });
 
+  const stackSort = el('stackSortBy').value;
   const entries = Object.entries(groups).sort((a, b) => {
     if (a[0] === '__none__') return 1;
     if (b[0] === '__none__') return -1;
-    return a[0].localeCompare(b[0]);
+    switch (stackSort) {
+      case 'count-desc': return b[1].length - a[1].length;
+      case 'count-asc': return a[1].length - b[1].length;
+      default: return a[0].localeCompare(b[0]);
+    }
   });
 
   el('stacksGrid').innerHTML = entries.map(([genre, list]) => {
@@ -1649,6 +1661,7 @@ function escapeHtml(str) {
 
 el('search').addEventListener('input', render);
 el('sortBy').addEventListener('change', render);
+el('stackSortBy').addEventListener('change', render);
 el('filterGenre').addEventListener('change', render);
 
 window.editRecord = editRecord;
