@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>The Stacks — Record Collection</title>
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#2c2820">
+<meta name="theme-color" content="#0c2340">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="The Stacks">
@@ -14,17 +14,19 @@
   @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700;9..144,900&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap');
 
   :root {
-    --ink: #1a1815;
-    --paper: #f2ecdc;
-    --paper-dim: #e4dac0;
-    --vinyl: #2c2820;
-    --vinyl-groove: #38332a;
-    --amber: #eba33a;
-    --amber-dim: #c98a2c;
-    --rust: #c85a3d;
-    --olive: #7d8354;
-    --line: rgba(26,24,21,0.14);
-    --line-light: rgba(242,236,220,0.18);
+    --ink: #0c2340;
+    --paper: #ffffff;
+    --paper-dim: #e8d9b8;
+    --vinyl: #f2e8d3;
+    --vinyl-groove: #ffffff;
+    --amber: #9c2b32;
+    --amber-dim: #7a2027;
+    --navy: #0c2340;
+    --navy-dim: #1c3a5e;
+    --rust: #b8342a;
+    --olive: #6b5220;
+    --line: rgba(12,35,64,0.16);
+    --line-light: rgba(12,35,64,0.16);
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -32,9 +34,9 @@
   body {
     background: var(--vinyl);
     background-image:
-      radial-gradient(circle at 85% -10%, rgba(235,163,58,0.10), transparent 45%),
-      repeating-radial-gradient(circle at 50% 50%, transparent 0, transparent 2px, rgba(255,255,255,0.014) 3px);
-    color: var(--paper);
+      radial-gradient(circle at 85% -10%, rgba(156,43,50,0.06), transparent 45%),
+      repeating-radial-gradient(circle at 50% 50%, transparent 0, transparent 2px, rgba(12,35,64,0.012) 3px);
+    color: var(--ink);
     font-family: 'Inter', sans-serif;
     min-height: 100vh;
     -webkit-font-smoothing: antialiased;
@@ -48,9 +50,9 @@
     flex-wrap: wrap;
     align-items: center;
     gap: 14px 22px;
-    padding-bottom: 26px;
+    padding-bottom: 22px;
     margin-bottom: 28px;
-    border-bottom: 1px solid var(--line-light);
+    border-bottom: 3px solid var(--navy);
   }
 
   .header-actions {
@@ -66,7 +68,7 @@
     height: 64px;
     flex-shrink: 0;
     object-fit: contain;
-    filter: drop-shadow(0 6px 14px rgba(0,0,0,0.45));
+    filter: drop-shadow(0 4px 10px rgba(12,35,64,0.25));
     transition: transform 0.25s ease;
   }
   header:hover .logo-mark { transform: translateY(-2px) rotate(-3deg); }
@@ -76,7 +78,7 @@
     font-weight: 900;
     font-size: 30px;
     letter-spacing: -0.01em;
-    color: var(--paper);
+    color: var(--ink);
   }
   .titles p {
     font-family: 'IBM Plex Mono', monospace;
@@ -97,16 +99,16 @@
     margin-bottom: 26px;
     font-family: 'IBM Plex Mono', monospace;
   }
-  .stat { background: var(--vinyl); padding: 14px 16px; }
-  .stat .n { font-size: 22px; font-weight: 600; color: var(--amber); }
-  .stat .l { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(236,229,211,0.5); margin-top: 2px; }
+  .stat { background: var(--paper); padding: 14px 16px; }
+  .stat .n { font-size: 22px; font-weight: 700; color: var(--amber); }
+  .stat .l { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: #8a7d63; margin-top: 2px; }
 
   /* ---------- CONTROLS ---------- */
   /* ---------- VIEW TABS ---------- */
   .view-tabs {
     display: inline-flex;
-    border: 1px solid var(--line-light);
-    border-radius: 4px;
+    border: 2px solid var(--navy);
+    border-radius: 5px;
     overflow: hidden;
     margin-bottom: 18px;
   }
@@ -114,20 +116,22 @@
     font-family: 'IBM Plex Mono', monospace;
     font-size: 12.5px;
     letter-spacing: 0.03em;
+    font-weight: 600;
     padding: 9px 18px;
     border: none;
     background: transparent;
-    color: rgba(236,229,211,0.65);
+    color: var(--navy);
     cursor: pointer;
     transition: background 0.15s ease, color 0.15s ease;
   }
-  .tab-btn:not(:last-child) { border-right: 1px solid var(--line-light); }
-  .tab-btn:hover { color: var(--paper); }
+  .tab-btn:not(:last-child) { border-right: 2px solid var(--navy); }
+  .tab-btn:hover { background: rgba(12,35,64,0.06); }
   .tab-btn.active {
-    background: var(--amber);
+    background: var(--navy);
     color: var(--vinyl);
-    font-weight: 600;
+    font-weight: 700;
   }
+  .tab-btn.active:hover { background: var(--navy); }
 
   .controls {
     display: flex;
@@ -138,33 +142,34 @@
   }
   input[type="text"], select {
     background: var(--vinyl-groove);
-    border: 1px solid var(--line-light);
-    color: var(--paper);
+    border: 1px solid #d8c6a0;
+    color: var(--ink);
     font-family: 'Inter', sans-serif;
     font-size: 13px;
     padding: 10px 12px;
     border-radius: 3px;
     outline: none;
   }
-  input[type="text"]:focus, select:focus { border-color: var(--amber-dim); }
+  input[type="text"]:focus, select:focus { border-color: var(--amber); }
   #search { flex: 1; min-width: 180px; }
   select { cursor: pointer; }
 
   .btn {
     font-family: 'IBM Plex Mono', monospace;
     font-size: 12px;
+    font-weight: 600;
     letter-spacing: 0.04em;
     padding: 10px 16px;
-    border-radius: 3px;
-    border: 1px solid transparent;
+    border-radius: 5px;
+    border: 2px solid transparent;
     cursor: pointer;
     transition: transform 0.08s ease, background 0.15s ease;
   }
   .btn:active { transform: scale(0.97); }
-  .btn-primary { background: var(--amber); color: var(--vinyl); font-weight: 600; }
-  .btn-primary:hover { background: #eaa53f; }
-  .btn-ghost { background: transparent; border-color: var(--line-light); color: var(--paper); }
-  .btn-ghost:hover { border-color: var(--amber-dim); color: var(--amber); }
+  .btn-primary { background: var(--amber); color: var(--vinyl); font-weight: 700; }
+  .btn-primary:hover { background: var(--amber-dim); }
+  .btn-ghost { background: transparent; border-color: var(--navy); color: var(--navy); }
+  .btn-ghost:hover { background: rgba(12,35,64,0.06); }
 
   /* ---------- CRATE / GRID ---------- */
   .crate {
@@ -202,19 +207,19 @@
   .stack-sleeve {
     position: absolute;
     inset: 0;
-    border-radius: 3px;
+    border-radius: 6px;
     background: var(--paper-dim);
-    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    box-shadow: 0 4px 10px rgba(12,35,64,0.2);
     transition: transform 0.2s ease, box-shadow 0.2s ease;
     overflow: hidden;
   }
   .stack-sleeve img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .stack-sleeve.s4 { transform: translate(13px, -11px) rotate(10deg); background: #c7bc95; z-index: 0; }
-  .stack-sleeve.s4 img { filter: brightness(0.62) saturate(0.8); }
-  .stack-sleeve.s3 { transform: translate(9px, -9px) rotate(6deg); background: #d8cead; z-index: 1; }
-  .stack-sleeve.s3 img { filter: brightness(0.72) saturate(0.85); }
+  .stack-sleeve.s4 { transform: translate(13px, -11px) rotate(10deg); background: #c9b98f; z-index: 0; }
+  .stack-sleeve.s4 img { filter: brightness(0.85) saturate(0.85); }
+  .stack-sleeve.s3 { transform: translate(9px, -9px) rotate(6deg); background: #d8c39a; z-index: 1; }
+  .stack-sleeve.s3 img { filter: brightness(0.9) saturate(0.9); }
   .stack-sleeve.s2 { transform: translate(5px, -5px) rotate(3deg); background: var(--paper-dim); z-index: 2; }
-  .stack-sleeve.s2 img { filter: brightness(0.86) saturate(0.92); }
+  .stack-sleeve.s2 img { filter: brightness(0.95); }
   .stack-badge {
     position: absolute;
     top: -10px; right: -10px;
@@ -222,17 +227,17 @@
     padding: 0 6px;
     border-radius: 13px;
     background: var(--amber);
-    color: #412402;
+    color: var(--vinyl);
     font-family: 'IBM Plex Mono', monospace;
-    font-weight: 600;
+    font-weight: 700;
     font-size: 12px;
     display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+    box-shadow: 0 2px 6px rgba(12,35,64,0.35);
     z-index: 4;
   }
   .stack-sleeve.face-sleeve {
     z-index: 3;
-    background: var(--paper);
+    background: var(--navy);
     overflow: hidden;
     display: flex;
     align-items: center;
@@ -241,14 +246,15 @@
   .stack-tile:hover .s4 { transform: translate(17px, -15px) rotate(13deg); }
   .stack-tile:hover .s3 { transform: translate(13px, -13px) rotate(9deg); }
   .stack-tile:hover .s2 { transform: translate(7px, -7px) rotate(4deg); }
-  .stack-tile:hover .face-sleeve { transform: translate(0,-3px); box-shadow: 0 10px 20px rgba(0,0,0,0.4); }
+  .stack-tile:hover .face-sleeve { transform: translate(0,-3px); box-shadow: 0 10px 20px rgba(12,35,64,0.3); }
 
   .face-sleeve img { width: 100%; height: 100%; object-fit: cover; }
   .face-sleeve .face-fallback {
-    width: 60%; height: 60%;
-    border-radius: 50%;
-    background: radial-gradient(circle at center, var(--amber) 0 14%, var(--vinyl) 15% 20%, var(--ink) 21% 100%);
-    display: flex; align-items: center; justify-content: center;
+    font-size: 26px;
+    color: var(--amber);
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .stack-label { text-align: center; }
@@ -256,7 +262,7 @@
     font-family: 'Fraunces', serif;
     font-weight: 700;
     font-size: 15.5px;
-    color: var(--paper);
+    color: var(--ink);
   }
   .stack-label .stack-count {
     font-family: 'IBM Plex Mono', monospace;
@@ -388,9 +394,63 @@
     text-align: center;
     padding: 60px 20px;
     font-family: 'IBM Plex Mono', monospace;
-    color: rgba(236,229,211,0.45);
+    color: rgba(12,35,64,0.4);
     font-size: 13px;
   }
+
+  /* ---------- RECORDS TABLE ---------- */
+  .table-wrap {
+    background: var(--paper);
+    border-radius: 6px;
+    overflow-x: auto;
+    box-shadow: 0 6px 16px rgba(12,35,64,0.18);
+    border: 1px solid #eee0c8;
+  }
+  .records-table {
+    width: 100%;
+    border-collapse: collapse;
+    color: var(--ink);
+    font-size: 12.5px;
+  }
+  .records-table th {
+    text-align: left;
+    padding: 10px 12px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #6b5f4d;
+    border-bottom: 2px solid var(--navy);
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+  }
+  .records-table th:hover { color: var(--amber); }
+  .records-table th .sort-arrow { margin-left: 3px; color: var(--amber); }
+  .records-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid #eee0c8;
+    vertical-align: middle;
+  }
+  .records-table tr:hover td { background: rgba(156,43,50,0.05); }
+  .records-table .cell-album { font-family: 'Fraunces', serif; font-weight: 700; font-size: 13px; }
+  .records-table .cell-artist { color: #55503f; }
+  .records-table .cell-muted { color: #8a7d63; font-size: 11.5px; white-space: nowrap; }
+  .records-table .thumb {
+    width: 34px; height: 34px; object-fit: cover; border-radius: 4px; display: block;
+  }
+  .records-table .thumb-fallback {
+    width: 34px; height: 34px; border-radius: 4px; background: var(--navy);
+    display: flex; align-items: center; justify-content: center; font-size: 14px; color: var(--amber);
+  }
+  .records-table .row-btn {
+    background: none; border: none; cursor: pointer; font-size: 13px;
+    color: #8a7d63; padding: 3px 5px;
+  }
+  .records-table .row-btn:hover { color: var(--amber); }
+  .records-table .row-btn.danger:hover { color: var(--rust); }
+  .records-table .row-btn.star.active { color: var(--amber); }
+  .records-table .row-actions-cell { white-space: nowrap; }
 
   /* ---------- MODAL ---------- */
   .overlay {
@@ -464,8 +524,7 @@
   }
   .help-modal li { margin-bottom: 4px; }
   .help-modal strong { color: var(--ink); }
-  .modal .btn-primary { background: var(--vinyl); color: var(--paper); }
-  .modal .btn-ghost { border-color: rgba(26,24,21,0.2); color: var(--ink); }
+  .modal .btn-ghost { border-color: var(--navy); color: var(--ink); }
   .modal .btn-ghost:hover { border-color: var(--rust); color: var(--rust); }
 
   #lookupField { padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px dashed rgba(26,24,21,0.2); }
@@ -488,7 +547,7 @@
   .lookup-status { font-size: 12px; color: #6b6650; margin-top: 6px; font-family: 'IBM Plex Mono', monospace; }
 
   ::-webkit-scrollbar { width: 8px; }
-  ::-webkit-scrollbar-thumb { background: rgba(236,229,211,0.15); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb { background: rgba(12,35,64,0.2); border-radius: 4px; }
 
   @media (max-width: 560px) {
     .stats { grid-template-columns: repeat(2, 1fr); }
@@ -498,6 +557,7 @@
     .field-row { grid-template-columns: 1fr; }
   }
 </style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/3.1.0/iconfont/tabler-icons.min.css">
 </head>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
@@ -511,9 +571,9 @@
       <p>your personal record ledger</p>
     </div>
     <div class="header-actions">
-      <span id="userEmail" style="font-family:'IBM Plex Mono',monospace; font-size:11px; color:rgba(236,229,211,0.55);"></span>
-      <button class="btn btn-ghost" id="helpBtn" style="display:none;">❓ Help</button>
-      <button class="btn btn-ghost" id="securityBtn" style="display:none;">🔒 Security</button>
+      <span id="userEmail" style="font-family:'IBM Plex Mono',monospace; font-size:11px; color:rgba(12,35,64,0.55);"></span>
+      <button class="btn btn-ghost" id="helpBtn" style="display:none;"><i class="ti ti-help-circle" style="font-size:15px; vertical-align:-2px; margin-right:3px;"></i>Help</button>
+      <button class="btn btn-ghost" id="securityBtn" style="display:none;"><i class="ti ti-shield-lock" style="font-size:15px; vertical-align:-2px; margin-right:3px;"></i>Security</button>
       <button class="btn btn-ghost" id="signOutBtn" style="display:none;">Sign out</button>
     </div>
   </header>
@@ -523,19 +583,12 @@
   <div class="stats" id="stats"></div>
 
   <div class="view-tabs">
-    <button class="tab-btn active" id="stacksTabBtn">🗂 Stacks</button>
-    <button class="tab-btn" id="allRecordsTabBtn">📋 All Records</button>
+    <button class="tab-btn active" id="stacksTabBtn"><i class="ti ti-stack-2" style="font-size:15px; vertical-align:-2px; margin-right:4px;"></i>Stacks</button>
+    <button class="tab-btn" id="allRecordsTabBtn"><i class="ti ti-list" style="font-size:15px; vertical-align:-2px; margin-right:4px;"></i>All Records</button>
   </div>
 
   <div class="controls">
     <input type="text" id="search" name="stacks-record-search" placeholder="Search artist, album, or genre…" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false">
-    <select id="sortBy">
-      <option value="added-desc">Recently added</option>
-      <option value="artist-asc">Artist A–Z</option>
-      <option value="year-desc">Year (newest)</option>
-      <option value="year-asc">Year (oldest)</option>
-      <option value="value-desc">Value (high–low)</option>
-    </select>
     <select id="stackSortBy">
       <option value="genre-asc">Genre A–Z</option>
       <option value="count-desc">Most records</option>
@@ -586,11 +639,24 @@
   </div>
 </div>
 
+<div class="overlay" id="trackOverlay">
+  <div class="modal" style="max-width:420px;">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:4px;">
+      <div>
+        <h2 id="trackModalAlbum" style="margin-bottom:2px;"></h2>
+        <div id="trackModalArtist" style="font-size:13px; color:#6b6650;"></div>
+      </div>
+      <button type="button" class="btn btn-ghost" id="trackCloseBtn" style="padding:6px 10px;"><i class="ti ti-x"></i></button>
+    </div>
+    <ol id="trackModalList" style="list-style:none; margin-top:14px; font-size:13.5px; line-height:1.7; color:#3a362b;"></ol>
+  </div>
+</div>
+
 <div class="overlay" id="helpOverlay">
   <div class="modal help-modal">
     <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px;">
       <h2>The Stacks — User Guide</h2>
-      <button type="button" class="btn btn-ghost" id="helpCloseBtn" style="padding:6px 10px;">✕</button>
+      <button type="button" class="btn btn-ghost" id="helpCloseBtn" style="padding:6px 10px;"><i class="ti ti-x"></i></button>
     </div>
 
     <h3>Getting started</h3>
@@ -608,7 +674,7 @@
     <p>Tap <strong>+ Add Record</strong>. Three ways to fill it in:</p>
     <ul>
       <li><strong>Search by name</strong> — type artist/album in the MusicBrainz lookup box. Most fields, including cover art, fill in automatically.</li>
-      <li><strong>Scan the barcode</strong> — tap 📷 Scan, allow camera access, hold the barcode steady in frame.</li>
+      <li><strong>Scan the barcode</strong> — tap <i class="ti ti-camera" style="font-size:15px; vertical-align:-2px; margin-right:3px;"></i>Scan, allow camera access, hold the barcode steady in frame.</li>
       <li><strong>Type the barcode number</strong> — if scanning doesn't work, type the UPC digits and hit Look up.</li>
     </ul>
     <p>Everything is editable afterward, however you started.</p>
@@ -616,16 +682,16 @@
     <h3>Browsing your collection</h3>
     <p>The app opens on <strong>Stacks</strong> — records grouped into piles by genre. Tap a stack to open it.</p>
     <ul>
-      <li><strong>★ Set as stack cover</strong> — inside an opened stack, star a record to make it that genre's cover.</li>
+      <li><strong>Set as stack cover</strong> — inside an opened stack, tap the star icon to make a record that genre's cover.</li>
       <li><strong>Search or filter</strong> jumps into a filtered view; use <strong>← Back to Stacks</strong> to return.</li>
       <li><strong>Sort</strong> by recently added, artist, year, or value.</li>
     </ul>
 
     <h3>Editing and deleting</h3>
-    <p>Each card has a pencil (✎) to edit and an X to delete. Deletion is permanent — there's no undo.</p>
+    <p>Each row has icons to edit or delete. Deletion is permanent — there's no undo.</p>
 
     <h3>Security</h3>
-    <p>Tap <strong>🔒 Security</strong> to turn on two-factor authentication. Scan the QR code with an authenticator app, confirm with the 6-digit code, and you'll need it plus your password at every sign-in from then on.</p>
+    <p>Tap <strong><i class="ti ti-shield-lock" style="font-size:15px; vertical-align:-2px; margin-right:3px;"></i>Security</strong> to turn on two-factor authentication. Scan the QR code with an authenticator app, confirm with the 6-digit code, and you'll need it plus your password at every sign-in from then on.</p>
     <p><strong>There's no recovery code.</strong> Losing your authenticator app means losing access — keep the setup QR/key somewhere safe if you enable this.</p>
 
     <h3>A few notes</h3>
@@ -668,7 +734,7 @@
     </div>
 
     <div id="mfaOnState" style="display:none;">
-      <p style="font-size:13px; margin-bottom:14px;">✅ Two-factor authentication is <strong>on</strong>. You'll be asked for a code from your authenticator app each time you sign in.</p>
+      <p style="font-size:13px; margin-bottom:14px;"><i class="ti ti-circle-check" style="color:var(--amber); margin-right:4px;"></i>Two-factor authentication is <strong>on</strong>. You'll be asked for a code from your authenticator app each time you sign in.</p>
       <div class="modal-actions" style="justify-content:space-between;">
         <button type="button" class="btn btn-ghost" id="securityCloseBtn2">Close</button>
         <button type="button" class="btn btn-ghost" id="mfaDisableBtn" style="border-color:var(--rust); color:var(--rust);">Turn off 2FA</button>
@@ -690,7 +756,7 @@
       <div style="display:flex; gap:6px; margin-top:8px;">
         <input type="text" id="barcodeQuery" placeholder="UPC / barcode number" inputmode="numeric" autocomplete="new-password">
         <button type="button" class="btn btn-ghost" id="barcodeBtn" style="white-space:nowrap;">Look up</button>
-        <button type="button" class="btn btn-ghost" id="scanBtn" style="white-space:nowrap;">📷 Scan</button>
+        <button type="button" class="btn btn-ghost" id="scanBtn" style="white-space:nowrap;"><i class="ti ti-camera" style="font-size:15px; vertical-align:-2px; margin-right:3px;"></i>Scan</button>
       </div>
       <div id="scannerBox" style="display:none; margin-top:8px;">
         <div id="scannerViewport" style="position:relative; width:100%; height:220px; background:#000; border-radius:3px; overflow:hidden;"></div>
@@ -1453,8 +1519,8 @@ function render() {
   el('stacksTabBtn').classList.toggle('active', !inFlatMode);
   el('allRecordsTabBtn').classList.toggle('active', inFlatMode);
   el('stacksGrid').style.display = inFlatMode ? 'none' : 'grid';
-  el('crate').style.display = inFlatMode ? 'grid' : 'none';
-  el('sortBy').style.display = inFlatMode ? '' : 'none';
+  el('crate').style.display = inFlatMode ? 'block' : 'none';
+  // sortBy dropdown removed — the table's clickable column headers handle sorting now
   el('stackSortBy').style.display = inFlatMode ? 'none' : '';
 
   if (inFlatMode) {
@@ -1487,12 +1553,30 @@ function renderStacksGrid() {
     }
   });
 
+function iconForGenre(genre) {
+  const g = (genre || '').toLowerCase();
+  const map = [
+    [['rock', 'grunge', 'punk', 'metal'], 'ti-guitar-pick'],
+    [['jazz', 'blues'], 'ti-piano'],
+    [['classical', 'orchestra'], 'ti-violin'],
+    [['electronic', 'techno', 'house', 'edm'], 'ti-wave-square'],
+    [['hip hop', 'rap'], 'ti-microphone-2'],
+    [['country', 'folk', 'americana'], 'ti-guitar-pick'],
+    [['soundtrack', 'score'], 'ti-movie'],
+  ];
+  for (const [keywords, icon] of map) {
+    if (keywords.some(k => g.includes(k))) return icon;
+  }
+  return 'ti-music';
+}
+
   el('stacksGrid').innerHTML = entries.map(([genre, list]) => {
     const face = list.find(r => r.isFace) || list[0];
     const label = genre === '__none__' ? 'No genre' : genre;
+    const fallbackHtml = `<div class="face-fallback"><i class="ti ${iconForGenre(genre)}"></i></div>`;
     const faceInner = face.coverUrl
-      ? `<img src="${escapeAttr(face.coverUrl)}" alt="" onerror="this.parentElement.innerHTML='<div class=&quot;face-fallback&quot;></div>'">`
-      : `<div class="face-fallback"></div>`;
+      ? `<img src="${escapeAttr(face.coverUrl)}" alt="" onerror="this.parentElement.innerHTML='${fallbackHtml.replace(/'/g, "&#39;")}'">`
+      : fallbackHtml;
 
     // Pick real records for the back layers, preferring ones with cover art
     // so the stack reflects what's actually in the genre, not filler.
@@ -1534,7 +1618,7 @@ function exploreGenre(genre) {
   currentView = 'all';
   el('search').value = '';
   el('filterGenre').value = genre === '__none__' ? '__none__' : genre;
-  el('sortBy').value = 'artist-asc';
+  tableSort = { key: 'artist', dir: 'asc' };
   render();
 }
 
@@ -1552,9 +1636,19 @@ el('allRecordsTabBtn').addEventListener('click', () => {
   render();
 });
 
-function renderFlatCrate(search, genreFilter) {
-  const sortBy = el('sortBy').value;
+let tableSort = { key: 'addedAt', dir: 'desc' };
 
+function sortByColumn(key) {
+  if (tableSort.key === key) {
+    tableSort.dir = tableSort.dir === 'asc' ? 'desc' : 'asc';
+  } else {
+    tableSort.key = key;
+    tableSort.dir = (key === 'album' || key === 'artist' || key === 'genre' || key === 'format') ? 'asc' : 'desc';
+  }
+  render();
+}
+
+function renderFlatCrate(search, genreFilter) {
   let list = records.filter(r => {
     const matchesSearch = !search ||
       r.album.toLowerCase().includes(search) ||
@@ -1565,13 +1659,18 @@ function renderFlatCrate(search, genreFilter) {
     return matchesSearch && matchesGenre;
   });
 
+  const { key, dir } = tableSort;
+  const mult = dir === 'asc' ? 1 : -1;
   list.sort((a, b) => {
-    switch (sortBy) {
-      case 'artist-asc': return a.artist.localeCompare(b.artist);
-      case 'year-desc': return (parseInt(b.year)||0) - (parseInt(a.year)||0);
-      case 'year-asc': return (parseInt(a.year)||0) - (parseInt(b.year)||0);
-      case 'value-desc': return (b.price||0) - (a.price||0);
-      default: return (b.addedAt||0) - (a.addedAt||0);
+    switch (key) {
+      case 'album': return a.album.localeCompare(b.album) * mult;
+      case 'artist': return a.artist.localeCompare(b.artist) * mult;
+      case 'genre': return (a.genre || '').localeCompare(b.genre || '') * mult;
+      case 'format': return (a.format || '').localeCompare(b.format || '') * mult;
+      case 'year': return ((parseInt(a.year)||0) - (parseInt(b.year)||0)) * mult;
+      case 'price': return ((a.price||0) - (b.price||0)) * mult;
+      case 'condition': return (a.condition || '').localeCompare(b.condition || '') * mult;
+      default: return ((a.addedAt||0) - (b.addedAt||0)) * mult;
     }
   });
 
@@ -1580,42 +1679,65 @@ function renderFlatCrate(search, genreFilter) {
     return;
   }
 
-  crate.innerHTML = list.map(r => {
-    const tracks = r.tracklist ? r.tracklist.split('\n').filter(Boolean) : [];
-    return `
-    <div class="sleeve">
-      <div class="row-actions">
-        <button class="icon-btn face-btn" onclick='toggleFace("${r.id}")' title="${r.isFace ? 'Stack cover' : 'Set as stack cover'}">${r.isFace ? '★' : '☆'}</button>
-        <button class="icon-btn edit" onclick='editRecord("${r.id}")' title="Edit">✎</button>
-        <button class="icon-btn" onclick='deleteRecord("${r.id}")' title="Delete">✕</button>
-      </div>
-      <div class="sleeve-layout">
-        <div class="sleeve-main">
-          <div style="display:flex; gap:10px;">
-            ${r.coverUrl ? `<img src="${escapeAttr(r.coverUrl)}" alt="" style="width:44px; height:44px; object-fit:cover; border-radius:2px; flex-shrink:0;" onerror="this.style.display='none'">` : ''}
-            <div style="min-width:0;">
-              <h3>${escapeHtml(r.album)}</h3>
-              <div class="artist">${escapeHtml(r.artist)}</div>
-              ${r.label ? `<div style="font-size:11px; color:#8a836c; margin-top:2px;">${escapeHtml(r.label)}${r.catalogNumber ? ' · ' + escapeHtml(r.catalogNumber) : ''}</div>` : ''}
-              <div class="eyebrow" style="margin-top:4px; margin-bottom:0;">${r.year || '—'} · ${r.format}${r.releaseType ? ' · ' + escapeHtml(r.releaseType) : ''}${r.country ? ' · ' + escapeHtml(r.country) : ''}</div>
-            </div>
-          </div>
-          <div class="meta">
-            ${r.genre ? `<span class="chip">${escapeHtml(r.genre)}</span>` : ''}
-            <span class="chip condition-${r.condition}">${r.condition}</span>
-            ${r.price ? `<span class="chip">$${r.price.toFixed(2)}</span>` : ''}
-          </div>
-        </div>
-        ${tracks.length ? `
-        <div class="sleeve-tracklist">
-          <div class="tl-label">Track listing</div>
-          <ol>${tracks.map(t => `<li>${escapeHtml(t)}</li>`).join('')}</ol>
-        </div>` : ''}
-      </div>
+  const arrow = k => tableSort.key === k ? `<span class="sort-arrow">${tableSort.dir === 'asc' ? '▲' : '▼'}</span>` : '';
+  const columns = [
+    ['album', 'Album'], ['artist', 'Artist'], ['year', 'Year'],
+    ['genre', 'Genre'], ['format', 'Format'], ['condition', 'Cond.'], ['price', 'Price']
+  ];
+
+  crate.innerHTML = `
+    <div class="table-wrap">
+    <table class="records-table">
+      <thead><tr>
+        <th></th>
+        ${columns.map(([k, label]) => `<th onclick='sortByColumn("${k}")'>${label}${arrow(k)}</th>`).join('')}
+        <th>Label</th>
+        <th></th>
+        <th></th>
+      </tr></thead>
+      <tbody>
+        ${list.map(r => {
+          const tracks = r.tracklist ? r.tracklist.split('\n').filter(Boolean) : [];
+          return `
+          <tr>
+            <td>${r.coverUrl
+              ? `<img class="thumb" src="${escapeAttr(r.coverUrl)}" alt="" onerror="this.outerHTML='<div class=&quot;thumb-fallback&quot;><i class=&quot;ti ti-music&quot;></i></div>'">`
+              : `<div class="thumb-fallback"><i class="ti ti-music"></i></div>`}</td>
+            <td class="cell-album">${escapeHtml(r.album)}</td>
+            <td class="cell-artist">${escapeHtml(r.artist)}</td>
+            <td class="cell-muted">${r.year || '—'}</td>
+            <td class="cell-muted">${escapeHtml(r.genre || '—')}</td>
+            <td class="cell-muted">${escapeHtml(r.format || '—')}</td>
+            <td class="cell-muted">${escapeHtml(r.condition || '—')}</td>
+            <td class="cell-muted">${r.price ? '$' + r.price.toFixed(2) : '—'}</td>
+            <td class="cell-muted">${escapeHtml(r.label || '—')}</td>
+            <td>${tracks.length ? `<button class="row-btn" onclick='openTrackModal("${r.id}")' title="View track listing"><i class="ti ti-list-details" style="vertical-align:-2px;"></i> ${tracks.length}</button>` : ''}</td>
+            <td class="row-actions-cell">
+              <button class="row-btn star ${r.isFace ? 'active' : ''}" onclick='toggleFace("${r.id}")' title="${r.isFace ? 'Stack cover' : 'Set as stack cover'}"><i class="ti ti-star"></i></button>
+              <button class="row-btn" onclick='editRecord("${r.id}")' title="Edit"><i class="ti ti-pencil"></i></button>
+              <button class="row-btn danger" onclick='deleteRecord("${r.id}")' title="Delete"><i class="ti ti-trash"></i></button>
+            </td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>
     </div>
   `;
-  }).join('');
 }
+
+function openTrackModal(id) {
+  const r = records.find(x => x.id === id);
+  if (!r || !r.tracklist) return;
+  el('trackModalAlbum').textContent = r.album;
+  el('trackModalArtist').textContent = r.artist;
+  el('trackModalList').innerHTML = r.tracklist.split('\n').filter(Boolean)
+    .map(t => `<li>${escapeHtml(t)}</li>`).join('');
+  el('trackOverlay').classList.add('open');
+}
+el('trackCloseBtn').addEventListener('click', () => el('trackOverlay').classList.remove('open'));
+el('trackOverlay').addEventListener('click', e => {
+  if (e.target === el('trackOverlay')) el('trackOverlay').classList.remove('open');
+});
 
 async function toggleFace(id) {
   const record = records.find(x => x.id === id);
@@ -1660,7 +1782,6 @@ function escapeHtml(str) {
 
 
 el('search').addEventListener('input', render);
-el('sortBy').addEventListener('change', render);
 el('stackSortBy').addEventListener('change', render);
 el('filterGenre').addEventListener('change', render);
 
