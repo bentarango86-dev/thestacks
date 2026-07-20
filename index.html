@@ -102,6 +102,33 @@
   .stat .l { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(236,229,211,0.5); margin-top: 2px; }
 
   /* ---------- CONTROLS ---------- */
+  /* ---------- VIEW TABS ---------- */
+  .view-tabs {
+    display: inline-flex;
+    border: 1px solid var(--line-light);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 18px;
+  }
+  .tab-btn {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12.5px;
+    letter-spacing: 0.03em;
+    padding: 9px 18px;
+    border: none;
+    background: transparent;
+    color: rgba(236,229,211,0.65);
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .tab-btn:not(:last-child) { border-right: 1px solid var(--line-light); }
+  .tab-btn:hover { color: var(--paper); }
+  .tab-btn.active {
+    background: var(--amber);
+    color: var(--vinyl);
+    font-weight: 600;
+  }
+
   .controls {
     display: flex;
     flex-wrap: wrap;
@@ -495,6 +522,11 @@
 
   <div class="stats" id="stats"></div>
 
+  <div class="view-tabs">
+    <button class="tab-btn active" id="stacksTabBtn">🗂 Stacks</button>
+    <button class="tab-btn" id="allRecordsTabBtn">📋 All Records</button>
+  </div>
+
   <div class="controls">
     <input type="text" id="search" name="stacks-record-search" placeholder="Search artist, album, or genre…" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false">
     <select id="sortBy">
@@ -505,12 +537,7 @@
       <option value="value-desc">Value (high–low)</option>
     </select>
     <select id="filterGenre"><option value="">All genres</option></select>
-    <button class="btn btn-ghost" id="allRecordsBtn">📋 All Records</button>
     <button class="btn btn-primary" id="addBtn">+ Add Record</button>
-  </div>
-
-  <div id="backBar" style="display:none; margin-bottom:16px;">
-    <button class="btn btn-ghost" id="backToStacksBtn">← Back to Stacks</button>
   </div>
 
   <div class="stacks-grid" id="stacksGrid"></div>
@@ -1405,7 +1432,7 @@ function renderGenreFilter() {
   el('filterGenre').value = current;
 }
 
-let showAllList = false;
+let currentView = 'stacks'; // 'stacks' or 'all'
 
 function render() {
   renderStats();
@@ -1413,9 +1440,13 @@ function render() {
 
   const search = el('search').value.toLowerCase();
   const genreFilter = el('filterGenre').value;
-  const inFlatMode = search.trim() !== '' || genreFilter !== '' || showAllList;
+  // Typing a search or picking a genre only makes sense against the flat
+  // list, so either one implicitly switches the active tab too.
+  if (search.trim() !== '' || genreFilter !== '') currentView = 'all';
 
-  el('backBar').style.display = inFlatMode ? 'block' : 'none';
+  const inFlatMode = currentView === 'all';
+  el('stacksTabBtn').classList.toggle('active', !inFlatMode);
+  el('allRecordsTabBtn').classList.toggle('active', inFlatMode);
   el('stacksGrid').style.display = inFlatMode ? 'none' : 'grid';
   el('crate').style.display = inFlatMode ? 'grid' : 'none';
 
@@ -1441,7 +1472,7 @@ function renderStacksGrid() {
   const entries = Object.entries(groups).sort((a, b) => {
     if (a[0] === '__none__') return 1;
     if (b[0] === '__none__') return -1;
-    return b[1].length - a[1].length;
+    return a[0].localeCompare(b[0]);
   });
 
   el('stacksGrid').innerHTML = entries.map(([genre, list]) => {
@@ -1488,21 +1519,22 @@ function renderStacksGrid() {
 }
 
 function exploreGenre(genre) {
-  showAllList = false;
+  currentView = 'all';
   el('search').value = '';
   el('filterGenre').value = genre === '__none__' ? '__none__' : genre;
+  el('sortBy').value = 'artist-asc';
   render();
 }
 
-el('allRecordsBtn').addEventListener('click', () => {
-  showAllList = true;
+el('stacksTabBtn').addEventListener('click', () => {
+  currentView = 'stacks';
   el('search').value = '';
   el('filterGenre').value = '';
   render();
 });
 
-el('backToStacksBtn').addEventListener('click', () => {
-  showAllList = false;
+el('allRecordsTabBtn').addEventListener('click', () => {
+  currentView = 'all';
   el('search').value = '';
   el('filterGenre').value = '';
   render();
