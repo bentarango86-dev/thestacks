@@ -1578,7 +1578,7 @@ function iconForGenre(genre) {
     const label = genre === '__none__' ? 'No genre' : genre;
     const fallbackHtml = `<div class="face-fallback"><i class="ti ${iconForGenre(genre)}"></i></div>`;
     const faceInner = face.coverUrl
-      ? `<img src="${escapeAttr(face.coverUrl)}" alt="" onerror="this.parentElement.innerHTML='${fallbackHtml.replace(/'/g, "&#39;")}'">`
+      ? `<img src="${escapeAttr(face.coverUrl)}" alt="" onerror="this.parentElement.innerHTML='${fallbackHtml.replace(/"/g, '&quot;').replace(/'/g, "\\'")}'">`
       : fallbackHtml;
 
     // Pick real records for the back layers, preferring ones with cover art
