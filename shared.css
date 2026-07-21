@@ -166,11 +166,8 @@
 
   .drill-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
     gap: 14px;
-  }
-  @media (max-width: 860px) {
-    .drill-grid { grid-template-columns: 1fr; }
   }
 
   /* ---------- STACKS (genre piles) ---------- */
@@ -267,122 +264,83 @@
     letter-spacing: 0.06em;
   }
 
-  .sleeve {
+  /* ---------- COLLECTOR CARD ---------- */
+  .collector-card {
     background: var(--paper);
     color: var(--ink);
-    border-radius: 2px;
-    padding: 16px 16px 14px;
-    position: relative;
-    box-shadow: 0 6px 16px rgba(0,0,0,0.35);
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
-    min-height: 176px;
+    border-radius: 6px;
+    padding: 14px;
+    box-shadow: 0 4px 12px rgba(12,35,64,0.12);
+    transition: box-shadow 0.15s ease;
   }
-  .sleeve:hover { transform: translateY(-3px); box-shadow: 0 10px 24px rgba(0,0,0,0.45); }
-  .sleeve::before {
-    content: '';
-    position: absolute; top: 14px; right: -1px;
-    width: 6px; height: calc(100% - 28px);
-    background: repeating-linear-gradient(180deg, var(--vinyl) 0 3px, transparent 3px 6px);
-    opacity: 0.35;
-  }
+  .collector-card:hover { box-shadow: 0 8px 20px rgba(12,35,64,0.2); }
 
-  .sleeve-layout {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 18px;
-    height: 100%;
+  .collector-top { display: flex; gap: 14px; }
+  .collector-cover, .collector-cover-fallback {
+    width: 120px; height: 120px; border-radius: 5px; flex-shrink: 0;
   }
-  .sleeve-main {
-    flex: 1 1 200px;
-    display: flex;
-    flex-direction: column;
-    min-height: 176px;
-  }
-  .sleeve-tracklist {
-    flex: 1 1 180px;
-    border-left: 1px dashed rgba(26,24,21,0.15);
-    padding-left: 18px;
-    max-height: 260px;
-    overflow-y: auto;
-  }
-  .sleeve-tracklist .tl-label {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 10px;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--amber-dim);
-    margin-bottom: 6px;
-  }
-  .sleeve-tracklist ol {
-    list-style: none;
-    font-size: 12.5px;
-    line-height: 1.65;
-    color: #3a362b;
-  }
-  .sleeve-tracklist li {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .sleeve .eyebrow {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 10px;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--amber-dim);
-    margin-bottom: 6px;
-  }
-  .sleeve h3 {
-    font-family: 'Fraunces', serif;
-    font-weight: 700;
-    font-size: 18px;
-    padding-right: 78px;
-    line-height: 1.15;
-    margin-bottom: 3px;
-  }
-  .sleeve .artist {
-    font-size: 13px;
-    color: #55503f;
-    margin-bottom: 10px;
-  }
-  .sleeve .meta {
-    margin-top: auto;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 10.5px;
-  }
-  .chip {
-    background: rgba(26,24,21,0.08);
-    padding: 3px 7px;
-    border-radius: 2px;
-    color: #3a362b;
-  }
-  .chip.condition-M, .chip.condition-NM, .chip.condition-VG, .chip.condition-G {
-    background: var(--amber); color: var(--vinyl); font-weight: 600;
-  }
-
-  .sleeve .row-actions {
-    position: absolute; top: 10px; right: 10px;
-    display: flex; gap: 4px;
-    opacity: 0.6;
-    transition: opacity 0.12s ease;
-  }
-  .sleeve:hover .row-actions { opacity: 1; }
-  .icon-btn {
-    width: 24px; height: 24px;
-    border-radius: 3px;
-    border: none;
-    background: rgba(26,24,21,0.08);
-    color: var(--ink);
-    cursor: pointer;
-    font-size: 12px;
+  .collector-cover { object-fit: cover; display: block; }
+  .collector-cover-fallback {
+    background: var(--navy);
     display: flex; align-items: center; justify-content: center;
   }
-  .icon-btn:hover { background: rgba(184,72,47,0.75); color: #fff; }
-  .icon-btn.edit:hover { background: var(--amber-dim); color: #fff; }
+  .collector-cover-fallback i { font-size: 34px; color: var(--amber); }
+
+  .collector-info { min-width: 0; display: flex; flex-direction: column; flex: 1; }
+  .collector-title {
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-size: 16.5px;
+    line-height: 1.2;
+    margin-bottom: 2px;
+  }
+  .collector-artist { font-size: 13px; color: #55503f; }
+
+  .collector-badges { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+  .collector-badge {
+    background: var(--paper-dim);
+    color: #6b5220;
+    font-size: 10.5px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+  }
+
+  .collector-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .collector-chip { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 4px; }
+  .collector-chip.condition { background: var(--amber); color: var(--vinyl); }
+  .collector-chip.price { background: var(--paper-dim); color: #4a4030; }
+  .collector-chip.value { background: rgba(156,43,50,0.1); color: var(--amber); border: 1px solid rgba(156,43,50,0.25); }
+
+  .collector-actions {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-top: 12px; padding-top: 10px; border-top: 1px solid #eee0c8;
+  }
+  .collector-actions .icon-row { display: flex; gap: 2px; }
+  .collector-actions .icon-row button {
+    background: none; border: none; color: #8a7d63; cursor: pointer;
+    font-size: 15px; padding: 5px 7px; border-radius: 4px;
+  }
+  .collector-actions .icon-row button:hover { background: rgba(12,35,64,0.07); color: var(--ink); }
+  .collector-actions .icon-row button.danger:hover { color: var(--rust); }
+  .collector-actions .icon-row button.star.active { color: var(--amber); }
+
+  .collector-details-toggle {
+    background: none; border: none; color: var(--amber); font-size: 12px; font-weight: 700;
+    cursor: pointer; padding: 5px 2px; display: flex; align-items: center; gap: 4px;
+  }
+  .collector-details-toggle i { transition: transform 0.15s ease; font-size: 13px; }
+  .collector-details-toggle.open i { transform: rotate(180deg); }
+
+  .collector-tracklist {
+    display: none;
+    margin-top: 12px; padding-top: 12px;
+    border-top: 1px dashed #d8c6a0;
+    font-size: 12.5px; color: #4a4030; line-height: 1.7;
+    max-height: 240px; overflow-y: auto;
+  }
+  .collector-tracklist.open { display: block; }
 
   .empty-state {
     grid-column: 1 / -1;

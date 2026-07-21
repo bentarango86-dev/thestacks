@@ -44,6 +44,11 @@
   <div class="controls">
     <input type="text" id="search" name="stacks-record-search" placeholder="Search artist, album, or genre…" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false">
     <select id="filterGenre"><option value="">All genres</option></select>
+    <select id="filterYear"><option value="">All years</option></select>
+    <select id="filterFormat"><option value="">All formats</option></select>
+    <select id="filterCondition"><option value="">All conditions</option></select>
+    <select id="filterCountry"><option value="">All countries</option></select>
+    <select id="filterLabel"><option value="">All labels</option></select>
     <button class="btn btn-primary" id="addBtn">+ Add Record</button>
   </div>
 
@@ -83,9 +88,38 @@ function sortByColumn(key) {
   renderFlatCrate();
 }
 
+function populateFilterOptions() {
+  const populate = (id, values, current) => {
+    const el_ = el(id);
+    el_.innerHTML = `<option value="">${el_.dataset.allLabel}</option>` +
+      values.map(v => `<option value="${escapeAttr(v)}">${escapeHtml(v)}</option>`).join('');
+    el_.value = current;
+  };
+  const uniq = key => [...new Set(records.map(r => r[key]).filter(Boolean))].sort();
+
+  el('filterYear').dataset.allLabel = 'All years';
+  el('filterFormat').dataset.allLabel = 'All formats';
+  el('filterCondition').dataset.allLabel = 'All conditions';
+  el('filterCountry').dataset.allLabel = 'All countries';
+  el('filterLabel').dataset.allLabel = 'All labels';
+
+  populate('filterYear', uniq('year').sort((a,b) => b - a), el('filterYear').value);
+  populate('filterFormat', uniq('format'), el('filterFormat').value);
+  populate('filterCondition', uniq('condition'), el('filterCondition').value);
+  populate('filterCountry', uniq('country'), el('filterCountry').value);
+  populate('filterLabel', uniq('label'), el('filterLabel').value);
+}
+
 function renderFlatCrate() {
+  populateFilterOptions();
+
   const search = el('search').value.toLowerCase();
   const genreFilter = el('filterGenre').value;
+  const yearFilter = el('filterYear').value;
+  const formatFilter = el('filterFormat').value;
+  const conditionFilter = el('filterCondition').value;
+  const countryFilter = el('filterCountry').value;
+  const labelFilter = el('filterLabel').value;
 
   let list = records.filter(r => {
     const matchesSearch = !search ||
@@ -94,7 +128,13 @@ function renderFlatCrate() {
       (r.genre || '').toLowerCase().includes(search);
     const matchesGenre = !genreFilter ||
       (genreFilter === '__none__' ? !r.genre : r.genre === genreFilter);
-    return matchesSearch && matchesGenre;
+    const matchesYear = !yearFilter || r.year === yearFilter;
+    const matchesFormat = !formatFilter || r.format === formatFilter;
+    const matchesCondition = !conditionFilter || r.condition === conditionFilter;
+    const matchesCountry = !countryFilter || r.country === countryFilter;
+    const matchesLabel = !labelFilter || r.label === labelFilter;
+    return matchesSearch && matchesGenre && matchesYear && matchesFormat &&
+           matchesCondition && matchesCountry && matchesLabel;
   });
 
   const { key, dir } = tableSort;
@@ -187,6 +227,11 @@ function renderPage() {
 
 el('search').addEventListener('input', renderFlatCrate);
 el('filterGenre').addEventListener('change', renderFlatCrate);
+el('filterYear').addEventListener('change', renderFlatCrate);
+el('filterFormat').addEventListener('change', renderFlatCrate);
+el('filterCondition').addEventListener('change', renderFlatCrate);
+el('filterCountry').addEventListener('change', renderFlatCrate);
+el('filterLabel').addEventListener('change', renderFlatCrate);
 
 // Arrived here from a stack tile — pre-filter to that genre.
 const urlParams = new URLSearchParams(window.location.search);

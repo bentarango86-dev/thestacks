@@ -252,6 +252,10 @@ document.getElementById('modals-root').innerHTML = `
         </div>
       </div>
       <div class="field">
+        <label>Estimated value ($)</label>
+        <input type="text" id="estimatedValue" inputmode="decimal" placeholder="Optional — enter your own estimate">
+      </div>
+      <div class="field">
         <label>Notes</label>
         <textarea id="notes" rows="2" placeholder="Pressing details, where you found it, dedication, etc."></textarea>
       </div>

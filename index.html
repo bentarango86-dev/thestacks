@@ -51,7 +51,7 @@
   </div>
 
   <div class="controls" id="drillControls" style="display:none;">
-    <a href="index.html" class="btn btn-ghost">← Back to Stacks</a>
+    <a href="index.html" class="btn btn-ghost"><i class="ti ti-arrow-left" style="vertical-align:-2px; margin-right:3px;"></i>All Genres</a>
     <select id="drillSortBy">
       <option value="added-desc">Recently added</option>
       <option value="artist-asc">Artist A–Z</option>
@@ -60,6 +60,11 @@
       <option value="value-desc">Value (high–low)</option>
     </select>
     <button class="btn btn-primary" id="addBtnDrill" style="margin-left:auto;">+ Add Record</button>
+  </div>
+
+  <div id="recentlyAddedSection" style="margin-bottom:28px;">
+    <h2 style="font-family:'Fraunces',serif; font-weight:700; font-size:16px; color:var(--ink); margin-bottom:12px;">Recently Added</h2>
+    <div id="recentlyAddedRow" style="display:flex; gap:14px; overflow-x:auto; padding-bottom:4px;"></div>
   </div>
 
   <div class="stacks-grid" id="stacksGrid"></div>
@@ -220,34 +225,40 @@ function renderDrillCards() {
 
   el('drillCards').innerHTML = list.map(r => {
     const tracks = r.tracklist ? r.tracklist.split('\n').filter(Boolean) : [];
+    const coverHtml = r.coverUrl
+      ? `<img class="collector-cover" src="${escapeAttr(r.coverUrl)}" alt="" loading="lazy" onerror="this.outerHTML='<div class=&quot;collector-cover-fallback&quot;><i class=&quot;ti ${iconForGenre(r.genre)}&quot;></i></div>'">`
+      : `<div class="collector-cover-fallback"><i class="ti ${iconForGenre(r.genre)}"></i></div>`;
+    const badges = [
+      r.year, r.format, r.country, r.label
+    ].filter(Boolean).map(b => `<span class="collector-badge">${escapeHtml(b)}</span>`).join('');
     return `
-    <div class="sleeve">
-      <div class="row-actions">
-        <button class="icon-btn edit" onclick='toggleFace("${r.id}")' title="${r.isFace ? 'Stack cover' : 'Set as stack cover'}"><i class="ti ti-star" style="${r.isFace ? 'color:var(--amber);' : ''}"></i></button>
-        <button class="icon-btn edit" onclick='editRecord("${r.id}")' title="Edit"><i class="ti ti-pencil"></i></button>
-        <button class="icon-btn" onclick='deleteRecord("${r.id}")' title="Delete"><i class="ti ti-trash"></i></button>
-      </div>
-      <div class="sleeve-layout">
-        <div class="sleeve-main">
-          <div style="display:flex; gap:10px;">
-            ${r.coverUrl ? `<img src="${escapeAttr(r.coverUrl)}" alt="" loading="lazy" style="width:44px; height:44px; object-fit:cover; border-radius:2px; flex-shrink:0;" onerror="this.style.display='none'">` : ''}
-            <div style="min-width:0;">
-              <h3>${escapeHtml(r.album)}</h3>
-              <div class="artist">${escapeHtml(r.artist)}</div>
-              ${r.label ? `<div style="font-size:11px; color:#8a7d63; margin-top:2px;">${escapeHtml(r.label)}${r.catalogNumber ? ' · ' + escapeHtml(r.catalogNumber) : ''}</div>` : ''}
-              <div class="eyebrow" style="margin-top:4px; margin-bottom:0;">${r.year || '—'} · ${r.format}${r.releaseType ? ' · ' + escapeHtml(r.releaseType) : ''}${r.country ? ' · ' + escapeHtml(r.country) : ''}</div>
-            </div>
-          </div>
-          <div class="meta">
-            <span class="chip condition-${r.condition}">${r.condition}</span>
-            ${r.price ? `<span class="chip">$${r.price.toFixed(2)}</span>` : ''}
+    <div class="collector-card">
+      <div class="collector-top">
+        ${coverHtml}
+        <div class="collector-info">
+          <div class="collector-title">${escapeHtml(r.album)}</div>
+          <div class="collector-artist">${escapeHtml(r.artist)}</div>
+          <div class="collector-badges">${badges}</div>
+          <div class="collector-chips">
+            <span class="collector-chip condition">${r.condition}</span>
+            ${r.price ? `<span class="collector-chip price">Paid $${r.price.toFixed(2)}</span>` : ''}
+            ${r.estimatedValue ? `<span class="collector-chip value">Value $${r.estimatedValue.toFixed(2)}</span>` : ''}
           </div>
         </div>
-        ${tracks.length ? `
-        <div class="sleeve-tracklist">
-          <div class="tl-label">Track listing</div>
-          <ol>${tracks.map(t => `<li>${escapeHtml(t)}</li>`).join('')}</ol>
-        </div>` : ''}
+      </div>
+      ${tracks.length ? `
+      <button class="collector-details-toggle" onclick='toggleCardDetails(this)'>
+        <i class="ti ti-chevron-down"></i>View Details
+      </button>
+      <div class="collector-tracklist">${tracks.map(t => escapeHtml(t)).join('<br>')}</div>
+      ` : ''}
+      <div class="collector-actions">
+        <span></span>
+        <div class="icon-row">
+          <button class="star ${r.isFace ? 'active' : ''}" onclick='toggleFace("${r.id}")' title="${r.isFace ? 'Stack cover' : 'Set as stack cover'}"><i class="ti ti-star"></i></button>
+          <button onclick='editRecord("${r.id}")' title="Edit"><i class="ti ti-pencil"></i></button>
+          <button class="danger" onclick='deleteRecord("${r.id}")' title="Delete"><i class="ti ti-trash"></i></button>
+        </div>
       </div>
     </div>
   `;
@@ -256,16 +267,48 @@ function renderDrillCards() {
   armLazyImageTimeouts(el('drillCards'));
 }
 
+function toggleCardDetails(btn) {
+  btn.classList.toggle('open');
+  const tracklist = btn.nextElementSibling;
+  tracklist.classList.toggle('open');
+  btn.innerHTML = btn.classList.contains('open')
+    ? '<i class="ti ti-chevron-down"></i>Hide Details'
+    : '<i class="ti ti-chevron-down"></i>View Details';
+}
+
+function renderRecentlyAdded() {
+  const recent = [...records].sort((a, b) => (b.addedAt||0) - (a.addedAt||0)).slice(0, 8);
+  if (recent.length === 0) {
+    el('recentlyAddedSection').style.display = 'none';
+    return;
+  }
+  el('recentlyAddedRow').innerHTML = recent.map(r => {
+    const cover = r.coverUrl
+      ? `<img src="${escapeAttr(r.coverUrl)}" alt="" loading="lazy" style="width:84px; height:84px; object-fit:cover; border-radius:5px;" onerror="this.outerHTML='<div style=&quot;width:84px;height:84px;border-radius:5px;background:var(--navy);display:flex;align-items:center;justify-content:center;&quot;><i class=&quot;ti ${iconForGenre(r.genre)}&quot; style=&quot;color:var(--amber);font-size:24px;&quot;></i></div>'">`
+      : `<div style="width:84px; height:84px; border-radius:5px; background:var(--navy); display:flex; align-items:center; justify-content:center;"><i class="ti ${iconForGenre(r.genre)}" style="color:var(--amber); font-size:24px;"></i></div>`;
+    return `
+      <div style="flex-shrink:0; width:84px; cursor:pointer;" onclick='editRecord("${r.id}")'>
+        ${cover}
+        <div style="font-size:11.5px; font-weight:700; color:var(--ink); margin-top:6px; line-height:1.25; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(r.album)}</div>
+        <div style="font-size:10.5px; color:#8a7d63; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(r.artist)}</div>
+      </div>
+    `;
+  }).join('');
+}
+
 function renderPage() {
   renderStats();
   if (drillGenre) {
     el('stacksControls').style.display = 'none';
     el('drillControls').style.display = 'flex';
     el('stacksGrid').style.display = 'none';
+    el('recentlyAddedSection').style.display = 'none';
     el('drillHeading').style.display = 'block';
     el('drillCards').style.display = 'grid';
     renderDrillCards();
   } else {
+    el('recentlyAddedSection').style.display = 'block';
+    renderRecentlyAdded();
     renderStacksGrid();
   }
 }

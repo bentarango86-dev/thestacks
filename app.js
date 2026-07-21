@@ -261,7 +261,8 @@ async function loadRecords() {
     country: r.country || '',
     releaseType: r.release_type || '',
     tracklist: r.tracklist || '',
-    isFace: r.is_face || false
+    isFace: r.is_face || false,
+    estimatedValue: r.estimated_value || 0
   }));
   renderPage();
 }
@@ -533,6 +534,7 @@ function openModal(record) {
     el('format').value = record.format || 'LP';
     el('condition').value = record.condition || 'VG';
     el('price').value = record.price || '';
+    el('estimatedValue').value = record.estimatedValue || '';
     el('purchaseDate').value = record.purchaseDate || '';
     el('notes').value = record.notes || '';
     el('coverUrl').value = record.coverUrl || '';
@@ -567,6 +569,7 @@ form.addEventListener('submit', async e => {
     format: el('format').value,
     condition: el('condition').value,
     price: parseFloat(el('price').value) || 0,
+    estimated_value: parseFloat(el('estimatedValue').value) || null,
     purchase_date: el('purchaseDate').value || null,
     notes: el('notes').value.trim(),
     cover_url: el('coverUrl').value.trim() || null,
@@ -639,7 +642,8 @@ async function toggleFace(id) {
 
 function renderStats() {
   const total = records.length;
-  const value = records.reduce((sum, r) => sum + (r.price || 0), 0);
+  const hasAnyValue = records.some(r => r.estimatedValue > 0);
+  const value = records.reduce((sum, r) => sum + (r.estimatedValue || 0), 0);
   const genres = new Set(records.map(r => r.genre).filter(Boolean)).size;
   const decades = {};
   records.forEach(r => {
@@ -650,10 +654,13 @@ function renderStats() {
     }
   });
   const topDecade = Object.entries(decades).sort((a,b) => b[1]-a[1])[0];
+  const valueDisplay = hasAnyValue
+    ? `<div class="n">$${value.toFixed(0)}</div>`
+    : `<div class="n" style="font-size:15px;">Not calculated</div>`;
 
   el('stats').innerHTML = `
     <div class="stat"><div class="n">${total}</div><div class="l">Record${total === 1 ? '' : 's'}</div></div>
-    <div class="stat"><div class="n">$${value.toFixed(0)}</div><div class="l">Collection Value</div></div>
+    <div class="stat">${valueDisplay}<div class="l">Collection Value</div></div>
     <div class="stat"><div class="n">${genres}</div><div class="l">Genre${genres === 1 ? '' : 's'}</div></div>
     <div class="stat"><div class="n">${topDecade ? topDecade[0] : '—'}</div><div class="l">Top Decade</div></div>
   `;
