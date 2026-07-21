@@ -228,37 +228,41 @@ function renderDrillCards() {
     const coverHtml = r.coverUrl
       ? `<img class="collector-cover" src="${escapeAttr(r.coverUrl)}" alt="" loading="lazy" onerror="this.outerHTML='<div class=&quot;collector-cover-fallback&quot;><i class=&quot;ti ${iconForGenre(r.genre)}&quot;></i></div>'">`
       : `<div class="collector-cover-fallback"><i class="ti ${iconForGenre(r.genre)}"></i></div>`;
-    const badges = [
-      r.year, r.format, r.country, r.label
-    ].filter(Boolean).map(b => `<span class="collector-badge">${escapeHtml(b)}</span>`).join('');
+    const line1 = [r.year, r.format, r.releaseType].filter(Boolean).join(' · ');
+    const line2 = [r.label, r.country].filter(Boolean).join(' · ');
     return `
     <div class="collector-card">
       <div class="collector-top">
         ${coverHtml}
         <div class="collector-info">
-          <div class="collector-title">${escapeHtml(r.album)}</div>
-          <div class="collector-artist">${escapeHtml(r.artist)}</div>
-          <div class="collector-badges">${badges}</div>
+          <div class="collector-title-row">
+            <div>
+              <div class="collector-title">${escapeHtml(r.album)}</div>
+              <div class="collector-artist">${escapeHtml(r.artist)}</div>
+            </div>
+            <div class="icon-row">
+              <button class="star ${r.isFace ? 'active' : ''}" onclick='toggleFace("${r.id}")' title="${r.isFace ? 'Stack cover' : 'Set as stack cover'}"><i class="ti ti-star"></i></button>
+              <button onclick='editRecord("${r.id}")' title="Edit"><i class="ti ti-pencil"></i></button>
+              <button class="danger" onclick='deleteRecord("${r.id}")' title="Delete"><i class="ti ti-trash"></i></button>
+            </div>
+          </div>
+          ${line1 ? `<div class="collector-metaline">${escapeHtml(line1)}</div>` : ''}
+          ${line2 ? `<div class="collector-metaline">${escapeHtml(line2)}</div>` : ''}
           <div class="collector-chips">
             <span class="collector-chip condition">${r.condition}</span>
-            ${r.price ? `<span class="collector-chip price">Paid $${r.price.toFixed(2)}</span>` : ''}
-            ${r.estimatedValue ? `<span class="collector-chip value">Value $${r.estimatedValue.toFixed(2)}</span>` : ''}
           </div>
         </div>
       </div>
-      ${tracks.length ? `
-      <button class="collector-details-toggle" onclick='toggleCardDetails(this)'>
-        <i class="ti ti-chevron-down"></i>View Details
-      </button>
-      <div class="collector-tracklist">${tracks.map(t => escapeHtml(t)).join('<br>')}</div>
-      ` : ''}
+      ${tracks.length ? `<div class="collector-tracklist">${tracks.map(t => escapeHtml(t)).join('<br>')}</div>` : ''}
       <div class="collector-actions">
-        <span></span>
-        <div class="icon-row">
-          <button class="star ${r.isFace ? 'active' : ''}" onclick='toggleFace("${r.id}")' title="${r.isFace ? 'Stack cover' : 'Set as stack cover'}"><i class="ti ti-star"></i></button>
-          <button onclick='editRecord("${r.id}")' title="Edit"><i class="ti ti-pencil"></i></button>
-          <button class="danger" onclick='deleteRecord("${r.id}")' title="Delete"><i class="ti ti-trash"></i></button>
-        </div>
+        <span style="display:flex; gap:14px;">
+          ${r.price ? `<span>Paid $${r.price.toFixed(2)}</span>` : ''}
+          ${r.estimatedValue ? `<span>Est. Value $${r.estimatedValue.toFixed(2)}</span>` : ''}
+        </span>
+        ${tracks.length ? `
+        <button class="collector-details-toggle" onclick='toggleCardDetails(this)'>
+          View Details<i class="ti ti-chevron-down"></i>
+        </button>` : '<span></span>'}
       </div>
     </div>
   `;
@@ -269,11 +273,12 @@ function renderDrillCards() {
 
 function toggleCardDetails(btn) {
   btn.classList.toggle('open');
-  const tracklist = btn.nextElementSibling;
+  const card = btn.closest('.collector-card');
+  const tracklist = card.querySelector('.collector-tracklist');
   tracklist.classList.toggle('open');
   btn.innerHTML = btn.classList.contains('open')
-    ? '<i class="ti ti-chevron-down"></i>Hide Details'
-    : '<i class="ti ti-chevron-down"></i>View Details';
+    ? 'Hide Details<i class="ti ti-chevron-down"></i>'
+    : 'View Details<i class="ti ti-chevron-down"></i>';
 }
 
 function renderRecentlyAdded() {
