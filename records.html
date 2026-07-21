@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>The Stacks — All Records</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0c2340">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="The Stacks">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/3.1.0/iconfont/tabler-icons.min.css">
+</head>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
+<body>
+<div class="wrap">
+
+  <header>
+    <img src="logo.png" alt="The Stacks" class="logo-mark">
+    <div class="titles">
+      <h1>The Stacks</h1>
+      <p>your personal record ledger</p>
+    </div>
+    <div class="header-actions">
+      <span id="userEmail" style="font-family:'IBM Plex Mono',monospace; font-size:11px; color:rgba(12,35,64,0.55);"></span>
+      <button class="btn btn-ghost" id="helpBtn" style="display:none;"><i class="ti ti-help-circle" style="font-size:15px; vertical-align:-2px; margin-right:3px;"></i>Help</button>
+      <button class="btn btn-ghost" id="securityBtn" style="display:none;"><i class="ti ti-shield-lock" style="font-size:15px; vertical-align:-2px; margin-right:3px;"></i>Security</button>
+      <button class="btn btn-ghost" id="signOutBtn" style="display:none;">Sign out</button>
+    </div>
+  </header>
+
+  <div id="appBody" style="display:none;">
+
+  <div class="stats" id="stats"></div>
+
+  <div class="view-tabs">
+    <a href="index.html" class="tab-btn"><i class="ti ti-stack-2" style="font-size:15px; vertical-align:-2px; margin-right:4px;"></i>Stacks</a>
+    <a href="records.html" class="tab-btn active"><i class="ti ti-list" style="font-size:15px; vertical-align:-2px; margin-right:4px;"></i>All Records</a>
+  </div>
+
+  <div class="controls">
+    <input type="text" id="search" name="stacks-record-search" placeholder="Search artist, album, or genre…" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false">
+    <select id="filterGenre"><option value="">All genres</option></select>
+    <button class="btn btn-primary" id="addBtn">+ Add Record</button>
+  </div>
+
+  <div class="crate" id="crate"></div>
+  </div>
+</div>
+
+<div id="modals-root"></div>
+
+<script src="modals.js"></script>
+<script src="app.js"></script>
+<script>
+// ---- ALL RECORDS PAGE ----
+const crate = el('crate');
+
+let tableSort = { key: 'addedAt', dir: 'desc' };
+
+function sortByColumn(key) {
+  if (tableSort.key === key) {
+    tableSort.dir = tableSort.dir === 'asc' ? 'desc' : 'asc';
+  } else {
+    tableSort.key = key;
+    tableSort.dir = (key === 'album' || key === 'artist' || key === 'genre' || key === 'format') ? 'asc' : 'desc';
+  }
+  renderFlatCrate();
+}
+
+function renderFlatCrate() {
+  const search = el('search').value.toLowerCase();
+  const genreFilter = el('filterGenre').value;
+
+  let list = records.filter(r => {
+    const matchesSearch = !search ||
+      r.album.toLowerCase().includes(search) ||
+      r.artist.toLowerCase().includes(search) ||
+      (r.genre || '').toLowerCase().includes(search);
+    const matchesGenre = !genreFilter ||
+      (genreFilter === '__none__' ? !r.genre : r.genre === genreFilter);
+    return matchesSearch && matchesGenre;
+  });
+
+  const { key, dir } = tableSort;
+  const mult = dir === 'asc' ? 1 : -1;
+  list.sort((a, b) => {
+    switch (key) {
+      case 'album': return a.album.localeCompare(b.album) * mult;
+      case 'artist': return a.artist.localeCompare(b.artist) * mult;
+      case 'genre': return (a.genre || '').localeCompare(b.genre || '') * mult;
+      case 'format': return (a.format || '').localeCompare(b.format || '') * mult;
+      case 'year': return ((parseInt(a.year)||0) - (parseInt(b.year)||0)) * mult;
+      case 'price': return ((a.price||0) - (b.price||0)) * mult;
+      case 'condition': return (a.condition || '').localeCompare(b.condition || '') * mult;
+      default: return ((a.addedAt||0) - (b.addedAt||0)) * mult;
+    }
+  });
+
+  if (list.length === 0) {
+    crate.innerHTML = `<div class="empty-state">${records.length === 0 ? 'The crate is empty. Add your first record.' : 'No records match.'}</div>`;
+    return;
+  }
+
+  const arrow = k => tableSort.key === k ? `<span class="sort-arrow">${tableSort.dir === 'asc' ? '▲' : '▼'}</span>` : '';
+  const columns = [
+    ['album', 'Album'], ['artist', 'Artist'], ['year', 'Year'],
+    ['genre', 'Genre'], ['format', 'Format'], ['condition', 'Cond.'], ['price', 'Price']
+  ];
+
+  crate.innerHTML = `
+    <div class="table-wrap">
+    <table class="records-table">
+      <thead><tr>
+        <th></th>
+        ${columns.map(([k, label]) => `<th onclick='sortByColumn("${k}")'>${label}${arrow(k)}</th>`).join('')}
+        <th>Label</th>
+        <th></th>
+        <th></th>
+      </tr></thead>
+      <tbody>
+        ${list.map(r => {
+          const tracks = r.tracklist ? r.tracklist.split('\n').filter(Boolean) : [];
+          return `
+          <tr>
+            <td>${r.coverUrl
+              ? `<img class="thumb" src="${escapeAttr(r.coverUrl)}" alt="" loading="lazy" onerror="this.outerHTML='<div class=&quot;thumb-fallback&quot;><i class=&quot;ti ti-music&quot;></i></div>'">`
+              : `<div class="thumb-fallback"><i class="ti ti-music"></i></div>`}</td>
+            <td class="cell-album">${escapeHtml(r.album)}</td>
+            <td class="cell-artist">${escapeHtml(r.artist)}</td>
+            <td class="cell-muted">${r.year || '—'}</td>
+            <td class="cell-muted">${escapeHtml(r.genre || '—')}</td>
+            <td class="cell-muted">${escapeHtml(r.format || '—')}</td>
+            <td class="cell-muted">${escapeHtml(r.condition || '—')}</td>
+            <td class="cell-muted">${r.price ? '$' + r.price.toFixed(2) : '—'}</td>
+            <td class="cell-muted">${escapeHtml(r.label || '—')}</td>
+            <td>${tracks.length ? `<button class="row-btn" onclick='openTrackModal("${r.id}")' title="View track listing"><i class="ti ti-list-details" style="vertical-align:-2px;"></i> ${tracks.length}</button>` : ''}</td>
+            <td class="row-actions-cell">
+              <button class="row-btn star ${r.isFace ? 'active' : ''}" onclick='toggleFace("${r.id}")' title="${r.isFace ? 'Stack cover' : 'Set as stack cover'}"><i class="ti ti-star"></i></button>
+              <button class="row-btn" onclick='editRecord("${r.id}")' title="Edit"><i class="ti ti-pencil"></i></button>
+              <button class="row-btn danger" onclick='deleteRecord("${r.id}")' title="Delete"><i class="ti ti-trash"></i></button>
+            </td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+    </div>
+  `;
+
+  armLazyImageTimeouts(crate);
+}
+
+function openTrackModal(id) {
+  const r = records.find(x => x.id === id);
+  if (!r || !r.tracklist) return;
+  el('trackModalAlbum').textContent = r.album;
+  el('trackModalArtist').textContent = r.artist;
+  el('trackModalList').innerHTML = r.tracklist.split('\n').filter(Boolean)
+    .map(t => `<li>${escapeHtml(t)}</li>`).join('');
+  el('trackOverlay').classList.add('open');
+}
+el('trackCloseBtn').addEventListener('click', () => el('trackOverlay').classList.remove('open'));
+el('trackOverlay').addEventListener('click', e => {
+  if (e.target === el('trackOverlay')) el('trackOverlay').classList.remove('open');
+});
+
+function renderPage() {
+  renderStats();
+  renderGenreFilter();
+  renderFlatCrate();
+}
+
+el('search').addEventListener('input', renderFlatCrate);
+el('filterGenre').addEventListener('change', renderFlatCrate);
+
+// Arrived here from a stack tile — pre-filter to that genre.
+const urlParams = new URLSearchParams(window.location.search);
+const genreParam = urlParams.get('genre');
+if (genreParam) {
+  const applyGenreFilter = () => {
+    el('filterGenre').value = genreParam;
+    tableSort = { key: 'artist', dir: 'asc' };
+    renderFlatCrate();
+  };
+  const originalRenderPage = renderPage;
+  renderPage = function() {
+    renderStats();
+    renderGenreFilter();
+    applyGenreFilter();
+  };
+}
+</script>
+</body>
+</html>

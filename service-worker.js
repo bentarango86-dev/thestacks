@@ -1,7 +1,11 @@
-const CACHE_NAME = 'the-stacks-v24';
+const CACHE_NAME = 'the-stacks-v27';
 const APP_SHELL = [
   './',
   './index.html',
+  './records.html',
+  './shared.css',
+  './app.js',
+  './modals.js',
   './manifest.json',
   './logo.png',
   './icon-192.png',

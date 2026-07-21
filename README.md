@@ -15,7 +15,11 @@ For how to *use* the app, see [USER_GUIDE.md](./USER_GUIDE.md). This file is for
 ## Files
 
 ```
-index.html         The entire app — markup, styles, and JS in one file
+index.html          The Stacks page — genre piles, landing page
+records.html        The All Records page — sortable/filterable table
+shared.css          Shared styles, used by both pages
+app.js              Shared logic: auth, MFA, CRUD, lookups, scanner, modals
+modals.js           Shared modal HTML (login, MFA, Help, Security, Add Record), injected at load
 manifest.json       PWA manifest (name, icons, theme color, display mode)
 service-worker.js   Offline caching for the app shell
 setup.sql           Database schema + Row Level Security policies
