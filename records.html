@@ -59,7 +59,18 @@
 // ---- ALL RECORDS PAGE ----
 const crate = el('crate');
 
-let tableSort = { key: 'addedAt', dir: 'desc' };
+function loadSavedTableSort() {
+  try {
+    const saved = localStorage.getItem('stacks:tableSort');
+    if (saved) return JSON.parse(saved);
+  } catch (e) { /* private browsing etc — fall through to default */ }
+  return { key: 'addedAt', dir: 'desc' };
+}
+function saveTableSort() {
+  try { localStorage.setItem('stacks:tableSort', JSON.stringify(tableSort)); } catch (e) { /* non-fatal */ }
+}
+
+let tableSort = loadSavedTableSort();
 
 function sortByColumn(key) {
   if (tableSort.key === key) {
@@ -68,6 +79,7 @@ function sortByColumn(key) {
     tableSort.key = key;
     tableSort.dir = (key === 'album' || key === 'artist' || key === 'genre' || key === 'format') ? 'asc' : 'desc';
   }
+  saveTableSort();
   renderFlatCrate();
 }
 

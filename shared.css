@@ -352,10 +352,9 @@
     border-radius: 2px;
     color: #3a362b;
   }
-  .chip.condition-M { background: rgba(107,112,72,0.22); color: #4a4d2f; }
-  .chip.condition-NM { background: rgba(107,112,72,0.16); color: #52562f; }
-  .chip.condition-VG { background: rgba(224,152,42,0.22); color: #8a5e15; }
-  .chip.condition-G { background: rgba(184,72,47,0.18); color: #8a3521; }
+  .chip.condition-M, .chip.condition-NM, .chip.condition-VG, .chip.condition-G {
+    background: var(--amber); color: var(--vinyl); font-weight: 600;
+  }
 
   .sleeve .row-actions {
     position: absolute; top: 10px; right: 10px;

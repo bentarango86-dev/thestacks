@@ -41,7 +41,7 @@
     <a href="records.html" class="tab-btn"><i class="ti ti-list" style="font-size:15px; vertical-align:-2px; margin-right:4px;"></i>All Records</a>
   </div>
 
-  <div class="controls">
+  <div class="controls" id="stacksControls">
     <select id="stackSortBy">
       <option value="genre-asc">Genre A–Z</option>
       <option value="count-desc">Most records</option>
@@ -50,7 +50,21 @@
     <button class="btn btn-primary" id="addBtn" style="margin-left:auto;">+ Add Record</button>
   </div>
 
+  <div class="controls" id="drillControls" style="display:none;">
+    <a href="index.html" class="btn btn-ghost">← Back to Stacks</a>
+    <select id="drillSortBy">
+      <option value="added-desc">Recently added</option>
+      <option value="artist-asc">Artist A–Z</option>
+      <option value="year-desc">Year (newest)</option>
+      <option value="year-asc">Year (oldest)</option>
+      <option value="value-desc">Value (high–low)</option>
+    </select>
+    <button class="btn btn-primary" id="addBtnDrill" style="margin-left:auto;">+ Add Record</button>
+  </div>
+
   <div class="stacks-grid" id="stacksGrid"></div>
+  <h2 id="drillHeading" style="display:none; font-family:'Fraunces',serif; font-weight:700; font-size:22px; color:var(--ink); margin-bottom:16px;"></h2>
+  <div class="crate" id="drillCards" style="display:none;"></div>
   </div>
 </div>
 
@@ -77,9 +91,39 @@ function iconForGenre(genre) {
   return 'ti-music';
 }
 
+// Drilling into a stack stays on this page (index.html?genre=X) rather than
+// jumping to the All Records table — it's part of the Stacks browsing
+// experience, not the spreadsheet view.
 function exploreGenre(genre) {
-  window.location.href = 'records.html?genre=' + encodeURIComponent(genre);
+  window.location.href = 'index.html?genre=' + encodeURIComponent(genre);
 }
+
+const urlParams = new URLSearchParams(window.location.search);
+const drillGenre = urlParams.get('genre');
+
+// ---- Sort persistence (survives reloads and navigation) ----
+function loadSavedSort(key, fallback) {
+  try {
+    const saved = localStorage.getItem(key);
+    return saved || fallback;
+  } catch (e) { return fallback; }
+}
+function saveSort(key, value) {
+  try { localStorage.setItem(key, value); } catch (e) { /* private browsing etc — non-fatal */ }
+}
+
+el('stackSortBy').value = loadSavedSort('stacks:stackSort', 'genre-asc');
+el('drillSortBy').value = loadSavedSort('stacks:drillSort', 'artist-asc');
+
+el('stackSortBy').addEventListener('change', () => {
+  saveSort('stacks:stackSort', el('stackSortBy').value);
+  renderStacksGrid();
+});
+el('drillSortBy').addEventListener('change', () => {
+  saveSort('stacks:drillSort', el('drillSortBy').value);
+  renderDrillCards();
+});
+el('addBtnDrill').addEventListener('click', () => openModal(null));
 
 function renderStacksGrid() {
   if (records.length === 0) {
@@ -153,12 +197,78 @@ function renderStacksGrid() {
   armLazyImageTimeouts(el('stacksGrid'));
 }
 
-function renderPage() {
-  renderStats();
-  renderStacksGrid();
+function renderDrillCards() {
+  const list = records.filter(r => drillGenre === '__none__' ? !r.genre : r.genre === drillGenre);
+  const label = drillGenre === '__none__' ? 'No genre' : drillGenre;
+  el('drillHeading').textContent = `${label} — ${list.length} record${list.length === 1 ? '' : 's'}`;
+
+  const sortBy = el('drillSortBy').value;
+  list.sort((a, b) => {
+    switch (sortBy) {
+      case 'artist-asc': return a.artist.localeCompare(b.artist);
+      case 'year-desc': return (parseInt(b.year)||0) - (parseInt(a.year)||0);
+      case 'year-asc': return (parseInt(a.year)||0) - (parseInt(b.year)||0);
+      case 'value-desc': return (b.price||0) - (a.price||0);
+      default: return (b.addedAt||0) - (a.addedAt||0);
+    }
+  });
+
+  if (list.length === 0) {
+    el('drillCards').innerHTML = `<div class="empty-state">No records in this genre yet.</div>`;
+    return;
+  }
+
+  el('drillCards').innerHTML = list.map(r => {
+    const tracks = r.tracklist ? r.tracklist.split('\n').filter(Boolean) : [];
+    return `
+    <div class="sleeve">
+      <div class="row-actions">
+        <button class="icon-btn edit" onclick='toggleFace("${r.id}")' title="${r.isFace ? 'Stack cover' : 'Set as stack cover'}"><i class="ti ti-star" style="${r.isFace ? 'color:var(--amber);' : ''}"></i></button>
+        <button class="icon-btn edit" onclick='editRecord("${r.id}")' title="Edit"><i class="ti ti-pencil"></i></button>
+        <button class="icon-btn" onclick='deleteRecord("${r.id}")' title="Delete"><i class="ti ti-trash"></i></button>
+      </div>
+      <div class="sleeve-layout">
+        <div class="sleeve-main">
+          <div style="display:flex; gap:10px;">
+            ${r.coverUrl ? `<img src="${escapeAttr(r.coverUrl)}" alt="" loading="lazy" style="width:44px; height:44px; object-fit:cover; border-radius:2px; flex-shrink:0;" onerror="this.style.display='none'">` : ''}
+            <div style="min-width:0;">
+              <h3>${escapeHtml(r.album)}</h3>
+              <div class="artist">${escapeHtml(r.artist)}</div>
+              ${r.label ? `<div style="font-size:11px; color:#8a7d63; margin-top:2px;">${escapeHtml(r.label)}${r.catalogNumber ? ' · ' + escapeHtml(r.catalogNumber) : ''}</div>` : ''}
+              <div class="eyebrow" style="margin-top:4px; margin-bottom:0;">${r.year || '—'} · ${r.format}${r.releaseType ? ' · ' + escapeHtml(r.releaseType) : ''}${r.country ? ' · ' + escapeHtml(r.country) : ''}</div>
+            </div>
+          </div>
+          <div class="meta">
+            <span class="chip condition-${r.condition}">${r.condition}</span>
+            ${r.price ? `<span class="chip">$${r.price.toFixed(2)}</span>` : ''}
+          </div>
+        </div>
+        ${tracks.length ? `
+        <div class="sleeve-tracklist">
+          <div class="tl-label">Track listing</div>
+          <ol>${tracks.map(t => `<li>${escapeHtml(t)}</li>`).join('')}</ol>
+        </div>` : ''}
+      </div>
+    </div>
+  `;
+  }).join('');
+
+  armLazyImageTimeouts(el('drillCards'));
 }
 
-el('stackSortBy').addEventListener('change', renderStacksGrid);
+function renderPage() {
+  renderStats();
+  if (drillGenre) {
+    el('stacksControls').style.display = 'none';
+    el('drillControls').style.display = 'flex';
+    el('stacksGrid').style.display = 'none';
+    el('drillHeading').style.display = 'block';
+    el('drillCards').style.display = 'grid';
+    renderDrillCards();
+  } else {
+    renderStacksGrid();
+  }
+}
 </script>
 </body>
 </html>
