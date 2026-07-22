@@ -910,20 +910,59 @@ function buildShelfCover(r, listKey) {
           <div class="shelf-cover-artist">${escapeHtml(r.artist)}</div>
         </div>
         <div class="shelf-cover-actions">
-          <button onclick='event.stopPropagation(); setShelfContext(${key}); openDetailModal("${r.id}")' title="View"><i class="ti ti-eye"></i></button>
-          <button onclick='event.stopPropagation(); setShelfContext(${key}); editRecord("${r.id}")' title="Edit"><i class="ti ti-pencil"></i></button>
-          <button class="star ${r.isFace ? 'active' : ''}" onclick='event.stopPropagation(); setShelfContext(${key}); toggleFace("${r.id}")' title="Favorite"><i class="ti ti-star"></i></button>
+          <button onclick='event.stopPropagation(); setShelfContext(${key}); openDetailModal("${r.id}")' title="View record"><i class="ti ti-eye"></i>View</button>
         </div>
       </div>
     </div>
   `;
 }
 
+// ---- SHELF SCROLL ARROWS ----
+// Arrows page the row by roughly a screenful, and hide themselves at each end
+// (and entirely when the whole shelf already fits) so they never sit there dead.
+function updateShelfArrows(row) {
+  const body = row.closest('.shelf-body');
+  if (!body) return;
+  const prev = body.querySelector('.shelf-arrow.prev');
+  const next = body.querySelector('.shelf-arrow.next');
+  if (!prev || !next) return;
+  // 2px slack absorbs sub-pixel rounding, which otherwise leaves the "next"
+  // arrow visible-but-useless when a row is scrolled fully to the end.
+  const maxScroll = row.scrollWidth - row.clientWidth;
+  const overflows = maxScroll > 2;
+  prev.hidden = !overflows || row.scrollLeft <= 2;
+  next.hidden = !overflows || row.scrollLeft >= maxScroll - 2;
+}
+
+function scrollShelf(btn, direction) {
+  const row = btn.closest('.shelf-body').querySelector('.shelf-row');
+  if (!row) return;
+  row.scrollBy({ left: direction * Math.max(row.clientWidth * 0.8, 160), behavior: 'smooth' });
+}
+
+function wireShelfArrows(row) {
+  if (!row) return;
+  row.addEventListener('scroll', () => updateShelfArrows(row), { passive: true });
+  // Cover art loads in after render and can change scrollWidth, so re-check.
+  row.querySelectorAll('img').forEach(img => {
+    if (!img.complete) img.addEventListener('load', () => updateShelfArrows(row), { once: true });
+  });
+  updateShelfArrows(row);
+}
+
+// One observer for all shelves — recalculates arrow visibility when the
+// viewport (and therefore each row's clientWidth) changes.
+const shelfResizeObserver = typeof ResizeObserver !== 'undefined'
+  ? new ResizeObserver(entries => entries.forEach(e => updateShelfArrows(e.target)))
+  : null;
+
 function buildShelfRow(container, list, listKey) {
   if (!container) return;
   shelfListRegistry[listKey] = list;
   container.innerHTML = list.map(r => buildShelfCover(r, listKey)).join('');
   armLazyImageTimeouts(container);
+  wireShelfArrows(container);
+  if (shelfResizeObserver) shelfResizeObserver.observe(container);
 }
 
 // ---- ALBUM DETAIL MODAL ("opening the record jacket") ----

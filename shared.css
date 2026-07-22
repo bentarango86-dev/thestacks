@@ -237,14 +237,16 @@
 
   /* ---------- SHELVES (Stacks homepage — browse in place, no page changes) ----------
      Bare covers: no permanent text, no counts on the artwork. Hover/tap reveals
-     album, artist, and the three actions. Everything sits on a physical ledge. */
-  .shelf { margin-bottom: 34px; }
+     album, artist, and View. Records sit IN a wooden shelf rather than floating
+     above a line — leaned back slightly, resting on the ledge, casting contact
+     shadows where they touch it. */
+  .shelf { margin-bottom: 38px; }
   .shelf-label {
     display: flex;
     align-items: baseline;
     gap: 10px;
     margin-bottom: 12px;
-    scroll-margin-top: 90px; /* so scrollIntoView (Continue Browsing) clears the sticky-ish header */
+    scroll-margin-top: 90px; /* so scrollIntoView (Continue Browsing) clears the header */
   }
   .shelf-label h3 {
     font-family: 'Fraunces', serif;
@@ -259,21 +261,91 @@
     text-transform: uppercase;
     letter-spacing: 0.05em;
   }
+
+  /* The shelf interior: a recessed back panel the records stand against.
+     Slight inner shadow at the top sells "these are inside a shelf, not on a page."
+     Also the positioning context for the scroll arrows. */
+  .shelf-body {
+    position: relative;
+    padding: 16px 0 0;
+    background:
+      linear-gradient(180deg, rgba(12,35,64,0.07) 0%, rgba(12,35,64,0.015) 22%, rgba(12,35,64,0) 55%);
+    border-radius: 4px 4px 0 0;
+  }
+
   .shelf-row {
     display: flex;
-    gap: 14px;
+    gap: 12px;
     overflow-x: auto;
-    padding-bottom: 6px;
+    /* Top padding is the lift headroom (records rise into it on hover).
+       Bottom padding is 0 so covers sit directly on the ledge below. */
+    padding: 12px 2px 0;
     scroll-snap-type: x proximity;
+    scroll-behavior: smooth;
+    /* Navigation is the arrows — the scrollbar is visual noise on a shelf. */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
   }
-  .shelf-row::-webkit-scrollbar { height: 6px; }
+  .shelf-row::-webkit-scrollbar { display: none; }
+
+  /* Netflix-style edge arrows. Hidden at the ends of the row, and only
+     surfaced on hover for pointer users so a resting shelf stays clean. */
+  .shelf-arrow {
+    position: absolute;
+    top: 16px;
+    bottom: 0;
+    width: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    cursor: pointer;
+    z-index: 4;
+    color: var(--vinyl);
+    font-size: 22px;
+    opacity: 0;
+    transition: opacity 0.18s ease;
+  }
+  .shelf-arrow.prev {
+    left: 0;
+    background: linear-gradient(90deg, rgba(12,35,64,0.55) 0%, rgba(12,35,64,0.28) 55%, rgba(12,35,64,0) 100%);
+  }
+  .shelf-arrow.next {
+    right: 0;
+    background: linear-gradient(270deg, rgba(12,35,64,0.55) 0%, rgba(12,35,64,0.28) 55%, rgba(12,35,64,0) 100%);
+  }
+  .shelf-arrow:hover { color: #fff; }
+  .shelf-arrow[hidden] { display: none; }
+  .shelf-body:hover .shelf-arrow:not([hidden]) { opacity: 1; }
+  .shelf-arrow:focus-visible { opacity: 1; outline: 2px solid var(--amber); outline-offset: -3px; }
+  /* Touch devices have no hover to reveal them, and swiping is the natural
+     gesture there — so keep the arrows persistent but quieter. */
+  @media (hover: none) {
+    .shelf-body .shelf-arrow:not([hidden]) { opacity: 0.85; }
+  }
+
+  /* The ledge itself — warm wood with grain, a lit top edge, and a shadow
+     beneath so it reads as a plank with thickness, not a divider rule. */
   .shelf-ledge {
-    height: 9px;
-    margin-top: 12px;
+    height: 14px;
     border-radius: 2px;
-    background: linear-gradient(180deg, var(--navy-dim) 0%, var(--navy) 100%);
-    box-shadow: 0 3px 8px rgba(12,35,64,0.3), inset 0 1px 0 rgba(255,255,255,0.08);
+    background:
+      repeating-linear-gradient(90deg,
+        rgba(74,48,22,0.00) 0px,
+        rgba(74,48,22,0.00) 7px,
+        rgba(50,32,14,0.10) 8px,
+        rgba(74,48,22,0.00) 9px,
+        rgba(74,48,22,0.00) 23px,
+        rgba(50,32,14,0.07) 24px,
+        rgba(74,48,22,0.00) 25px),
+      linear-gradient(180deg, #a9884f 0%, #8a6c3a 42%, #6d5329 72%, #4e3a1c 100%);
+    box-shadow:
+      inset 0 1px 0 rgba(255,232,186,0.45),
+      inset 0 -2px 3px rgba(0,0,0,0.32),
+      0 5px 12px rgba(12,35,64,0.26),
+      0 1px 0 rgba(0,0,0,0.22);
   }
+
   /* A brief highlight when "Continue Browsing" scrolls a shelf into view. */
   @keyframes shelfHighlight {
     0%, 100% { box-shadow: none; }
@@ -281,15 +353,30 @@
   }
   .shelf-label.flash h3 { animation: shelfHighlight 1s ease; border-radius: 3px; }
 
+  /* Covers sit flat and square on the ledge. The tight base shadow is the
+     contact point where the sleeve meets the plank; the softer one is cast. */
   .shelf-cover {
     flex: 0 0 auto;
     width: 128px;
     aspect-ratio: 1 / 1;
     scroll-snap-align: start;
+    box-shadow:
+      0 2px 3px rgba(12,35,64,0.45),
+      0 8px 12px rgba(12,35,64,0.22);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
   }
+  .gallery-cover-wrap.shelf-cover:hover,
+  .gallery-cover-wrap.shelf-cover.revealed {
+    transform: translateY(-7px);
+    box-shadow:
+      0 4px 6px rgba(12,35,64,0.3),
+      0 18px 28px rgba(12,35,64,0.36);
+    z-index: 3;
+  }
+
   .shelf-cover-overlay {
     position: absolute; inset: 0;
-    background: linear-gradient(180deg, rgba(12,35,64,0) 35%, rgba(12,35,64,0.94) 100%);
+    background: linear-gradient(180deg, rgba(12,35,64,0) 38%, rgba(12,35,64,0.94) 100%);
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
@@ -317,15 +404,24 @@
   .shelf-cover-actions { display: flex; justify-content: flex-end; gap: 4px; }
   .shelf-cover-actions button {
     background: rgba(255,255,255,0.14); border: none; color: var(--vinyl);
-    width: 26px; height: 26px; border-radius: 5px; cursor: pointer;
-    display: flex; align-items: center; justify-content: center; font-size: 12px;
+    height: 26px; padding: 0 10px; border-radius: 5px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 5px;
+    font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; font-weight: 600;
+    letter-spacing: 0.04em;
     transition: background 0.15s ease;
   }
   .shelf-cover-actions button:hover { background: rgba(255,255,255,0.3); }
-  .shelf-cover-actions button.star.active { color: var(--amber); background: rgba(255,255,255,0.3); }
+  .shelf-cover-actions button i { font-size: 12px; }
 
   @media (max-width: 560px) {
     .shelf-cover { width: 104px; }
+    .shelf-arrow { width: 34px; font-size: 18px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .shelf-row { scroll-behavior: auto; }
+    .gallery-cover-wrap.shelf-cover:hover,
+    .gallery-cover-wrap.shelf-cover.revealed { transform: none; }
   }
 
   /* ---------- HOME SEARCH (primary nav) ---------- */
@@ -376,7 +472,11 @@
     box-shadow: 0 4px 12px rgba(12,35,64,0.18);
     transition: transform 0.2s ease, box-shadow 0.2s ease;
   }
-  .gallery-cover-wrap:hover, .gallery-cover-wrap.revealed {
+  /* Generic lift for grid contexts (search results). Shelf covers override this
+     with their own lean/lift, so exclude them here rather than letting two
+     transform rules fight over the same element. */
+  .gallery-cover-wrap:not(.shelf-cover):hover,
+  .gallery-cover-wrap:not(.shelf-cover).revealed {
     transform: translateY(-3px);
     box-shadow: 0 12px 24px rgba(12,35,64,0.3);
   }
