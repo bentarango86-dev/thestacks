@@ -99,9 +99,24 @@
 // jumping to the All Records table — it's part of the Stacks browsing
 // experience, not the spreadsheet view. Remember it so "Continue Browsing"
 // can bring the person right back next visit.
-function exploreGenre(genre) {
+function exploreGenre(genre, tileEl) {
   saveLastGenre(genre);
-  window.location.href = 'index.html?genre=' + encodeURIComponent(genre);
+  const go = () => { window.location.href = 'index.html?genre=' + encodeURIComponent(genre); };
+  if (tileEl) {
+    tileEl.classList.add('pulling');
+    setTimeout(go, 140);
+  } else {
+    go();
+  }
+}
+
+// Small deterministic tilt per genre name so the shelf reads as records
+// actually dropped into place rather than a uniform grid of tiles.
+function jitterForGenre(genre) {
+  const s = genre || '';
+  let hash = 0;
+  for (let i = 0; i < s.length; i++) hash = (hash * 31 + s.charCodeAt(i)) | 0;
+  return (Math.abs(hash) % 7) - 3; // -3..3 degrees
 }
 
 function saveLastGenre(genre) {
@@ -191,8 +206,8 @@ function renderStacksGrid() {
       : '';
 
     return `
-      <div class="stack-tile" onclick='exploreGenre(${JSON.stringify(genre)})'>
-        <div class="stack-visual">
+      <div class="stack-tile" onclick='exploreGenre(${JSON.stringify(genre)}, this)'>
+        <div class="stack-visual" style="--jitter:${jitterForGenre(genre)}deg;">
           ${backLayers[2] ? `<div class="stack-sleeve s4">${sleeveInner(backLayers[2])}</div>` : ''}
           ${backLayers[1] ? `<div class="stack-sleeve s3">${sleeveInner(backLayers[1])}</div>` : ''}
           ${backLayers[0] ? `<div class="stack-sleeve s2">${sleeveInner(backLayers[0])}</div>` : ''}

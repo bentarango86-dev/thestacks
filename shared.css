@@ -190,13 +190,39 @@
     padding: 0;
     font-family: inherit;
     color: inherit;
+    transition: transform 0.15s ease, opacity 0.15s ease;
   }
+  /* A quick "pulled off the shelf" press before the page navigates —
+     brief and physical rather than a static click. */
+  .stack-tile.pulling { transform: scale(0.93); opacity: 0.6; }
 
   .stack-visual {
     position: relative;
     width: 100%;
     aspect-ratio: 1 / 1;
-    margin-bottom: 14px;
+    margin-bottom: 16px;
+    /* Deterministic per-genre tilt (set inline via --jitter) so the shelf reads
+       as records actually dropped into place, not a uniform grid of tiles. */
+    transform: rotate(var(--jitter, 0deg));
+    transition: transform 0.25s ease;
+  }
+  .stack-tile:hover .stack-visual { transform: rotate(var(--jitter, 0deg)) translateY(-2px); }
+
+  /* A sliver of vinyl peeking from behind the sleeve — the tell that this
+     is a record, not just cover art in a square. */
+  .stack-visual::after {
+    content: '';
+    position: absolute;
+    right: -6px;
+    bottom: 10px;
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background:
+      radial-gradient(circle at center, var(--amber) 0 2px, #0a0a0a 2px 3px, #060606 3px 100%);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.4);
+    z-index: 1;
+    opacity: 0.9;
   }
 
   .stack-sleeve {
@@ -258,6 +284,7 @@
     font-weight: 700;
     font-size: 15.5px;
     color: var(--ink);
+    letter-spacing: -0.01em;
   }
   .stack-label .stack-count {
     font-family: 'IBM Plex Mono', monospace;
@@ -265,6 +292,7 @@
     color: var(--amber-dim);
     text-transform: uppercase;
     letter-spacing: 0.06em;
+    margin-top: 1px;
   }
 
   /* ---------- HOME SEARCH (primary nav) ---------- */
