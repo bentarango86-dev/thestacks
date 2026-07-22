@@ -284,15 +284,14 @@ function renderSearchResults() {
     el('stacksGrid').style.display = 'grid';
     return true; // no query — caller should render the normal homepage
   }
-  const matches = records.filter(r =>
-    r.album.toLowerCase().includes(q) ||
-    r.artist.toLowerCase().includes(q) ||
-    (r.genre || '').toLowerCase().includes(q)
-  );
+  const matches = records.filter(r => recordMatchesQuery(r, q));
   el('recentlyAddedSection').style.display = 'none';
   el('stacksGrid').style.display = 'none';
   el('searchResultsSection').style.display = 'block';
-  el('searchResultsHeading').textContent = `${matches.length} result${matches.length === 1 ? '' : 's'}`;
+  el('searchResultsHeading').innerHTML = `
+    ${matches.length} result${matches.length === 1 ? '' : 's'}
+    <a href="records.html?q=${encodeURIComponent(el('homeSearch').value.trim())}" class="section-heading-link">Refine with filters in All Records <i class="ti ti-arrow-right"></i></a>
+  `;
   renderGalleryGrid(el('searchResultsGrid'), matches);
   return false;
 }

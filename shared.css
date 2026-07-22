@@ -461,7 +461,15 @@
   .section-heading {
     font-family: 'Fraunces', serif; font-weight: 700; font-size: 16px;
     color: var(--ink); margin-bottom: 12px;
+    display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 8px;
   }
+  .section-heading-link {
+    font-family: 'IBM Plex Mono', monospace; font-weight: 600; font-size: 11px;
+    letter-spacing: 0.03em; text-transform: none;
+    color: var(--amber-dim); text-decoration: none;
+  }
+  .section-heading-link:hover { color: var(--amber); }
+  .section-heading-link i { font-size: 11px; vertical-align: -1px; }
 
   /* ---------- DETAIL MODAL (open the record jacket) ---------- */
   .detail-modal { max-width: 480px; padding: 0; overflow: hidden; }
@@ -477,6 +485,16 @@
     width: 32px; height: 32px; border-radius: 16px; cursor: pointer;
     display: flex; align-items: center; justify-content: center; font-size: 15px;
   }
+  .detail-modal-nav {
+    position: absolute; top: 50%; transform: translateY(-50%);
+    background: rgba(12,35,64,0.5); border: none; color: var(--vinyl);
+    width: 36px; height: 36px; border-radius: 18px; cursor: pointer;
+    align-items: center; justify-content: center; font-size: 18px;
+    transition: background 0.15s ease;
+  }
+  .detail-modal-nav:hover { background: rgba(12,35,64,0.75); }
+  .detail-modal-nav.prev { left: 10px; }
+  .detail-modal-nav.next { right: 10px; }
   .detail-modal-body { padding: 22px 24px 24px; }
   .detail-modal-title-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
   .detail-modal-album { font-family: 'Fraunces', serif; font-weight: 700; font-size: 21px; line-height: 1.2; }
@@ -616,10 +634,11 @@
   /* ---------- RECORDS TABLE ---------- */
   .table-wrap {
     background: var(--paper);
-    border-radius: 6px;
+    border-radius: 8px;
     overflow-x: auto;
-    box-shadow: 0 6px 16px rgba(12,35,64,0.18);
+    box-shadow: 0 6px 18px rgba(12,35,64,0.14);
     border: 1px solid #eee0c8;
+    border-left: 3px solid var(--navy);
   }
   .records-table {
     width: 100%;
@@ -629,34 +648,51 @@
   }
   .records-table th {
     text-align: left;
-    padding: 10px 12px;
+    padding: 12px 14px;
     font-family: 'IBM Plex Mono', monospace;
     font-size: 10.5px;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
     color: #6b5f4d;
-    border-bottom: 2px solid var(--navy);
+    border-bottom: 2px solid var(--paper-dim);
     white-space: nowrap;
     cursor: pointer;
     user-select: none;
   }
-  .records-table th:hover { color: var(--amber); }
+  .records-table th:hover { color: var(--amber-dim); }
   .records-table th .sort-arrow { margin-left: 3px; color: var(--amber); }
   .records-table td {
-    padding: 8px 12px;
-    border-bottom: 1px solid #eee0c8;
+    padding: 10px 14px;
+    border-bottom: 1px dashed #e3d3ac;
     vertical-align: middle;
   }
-  .records-table tr:hover td { background: rgba(156,43,50,0.05); }
-  .records-table .cell-album { font-family: 'Fraunces', serif; font-weight: 700; font-size: 13px; }
+  .records-table tbody tr:nth-child(even) td { background: rgba(232,217,184,0.16); }
+  .records-table tr:hover td { background: #fff8ec; }
+  .records-table tr:hover .cell-album { color: var(--amber-dim); }
+  .records-table .cell-album {
+    font-family: 'Fraunces', serif; font-weight: 700; font-size: 14px;
+    transition: color 0.12s ease;
+  }
   .records-table .cell-artist { color: #55503f; }
   .records-table .cell-muted { color: #8a7d63; font-size: 11.5px; white-space: nowrap; }
+  .records-table .cell-price { color: var(--amber-dim); font-weight: 700; font-size: 12.5px; white-space: nowrap; }
+  .records-table .meta-chip {
+    display: inline-block;
+    font-size: 10.5px; font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: var(--paper-dim);
+    color: #6b5f4d;
+    white-space: nowrap;
+  }
   .records-table .thumb {
-    width: 34px; height: 34px; object-fit: cover; border-radius: 4px; display: block;
+    width: 44px; height: 44px; object-fit: cover; border-radius: 6px; display: block;
+    box-shadow: 0 2px 6px rgba(12,35,64,0.2);
   }
   .records-table .thumb-fallback {
-    width: 34px; height: 34px; border-radius: 4px; background: var(--navy);
-    display: flex; align-items: center; justify-content: center; font-size: 14px; color: var(--amber);
+    width: 44px; height: 44px; border-radius: 6px; background: var(--navy);
+    display: flex; align-items: center; justify-content: center; font-size: 17px; color: var(--amber);
+    box-shadow: 0 2px 6px rgba(12,35,64,0.2);
   }
   .records-table .row-btn {
     background: none; border: none; cursor: pointer; font-size: 13px;

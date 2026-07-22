@@ -8,6 +8,18 @@ const SUPABASE_ANON_KEY = 'sb_publishable_RjMrtGKMZZBL1WzR_DdG3w_xSYJkWfV';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let records = [];
+// The list a Detail Modal was opened from (a gallery grid, the All Records
+// table, etc.) so Prev/Next inside the modal flips through the same set the
+// person was actually looking at, rather than some unrelated ordering.
+let lastListContext = [];
+let detailList = [];
+let detailIndex = -1;
+
+function recordMatchesQuery(r, q) {
+  return r.album.toLowerCase().includes(q) ||
+    r.artist.toLowerCase().includes(q) ||
+    (r.genre || '').toLowerCase().includes(q);
+}
 let editingId = null;
 let currentUser = null;
 
@@ -820,6 +832,7 @@ function iconForGenre(genre) {
 // Mobile (no hover capability): first tap reveals the same overlay, second tap opens the detail modal.
 function renderGalleryGrid(container, list) {
   if (!container) return;
+  lastListContext = list;
   if (list.length === 0) {
     container.innerHTML = `<div class="empty-state">No records here yet.</div>`;
     return;
@@ -873,8 +886,15 @@ function handleGalleryTap(wrap, id) {
 
 // ---- ALBUM DETAIL MODAL ("opening the record jacket") ----
 function openDetailModal(id) {
-  const r = records.find(x => x.id === id);
+  // Flip through whichever list this was opened from (the grid or table the
+  // person was just looking at) — falls back to the full collection if the
+  // record isn't part of the last-rendered list (e.g. Random Record).
+  const contextList = lastListContext.some(x => x.id === id) ? lastListContext : records;
+  const idx = contextList.findIndex(x => x.id === id);
+  const r = idx > -1 ? contextList[idx] : records.find(x => x.id === id);
   if (!r) return;
+  detailList = contextList;
+  detailIndex = idx;
 
   if (r.coverUrl) {
     el('detailCoverWrap').classList.add('img-loading');
@@ -929,11 +949,29 @@ function openDetailModal(id) {
   el('detailEditBtn').onclick = () => { el('detailOverlay').classList.remove('open'); editRecord(r.id); };
   el('detailDeleteBtn').onclick = () => deleteRecord(r.id);
 
+  const hasNav = detailList.length > 1 && detailIndex > -1;
+  el('detailPrevBtn').style.display = hasNav ? 'flex' : 'none';
+  el('detailNextBtn').style.display = hasNav ? 'flex' : 'none';
+
   el('detailOverlay').classList.add('open');
 }
 el('detailCloseBtn').addEventListener('click', () => el('detailOverlay').classList.remove('open'));
 el('detailOverlay').addEventListener('click', e => {
   if (e.target === el('detailOverlay')) el('detailOverlay').classList.remove('open');
+});
+
+function detailStep(direction) {
+  if (!detailList.length || detailIndex === -1) return;
+  const nextIndex = (detailIndex + direction + detailList.length) % detailList.length;
+  openDetailModal(detailList[nextIndex].id);
+}
+el('detailPrevBtn').addEventListener('click', e => { e.stopPropagation(); detailStep(-1); });
+el('detailNextBtn').addEventListener('click', e => { e.stopPropagation(); detailStep(1); });
+document.addEventListener('keydown', e => {
+  if (!el('detailOverlay').classList.contains('open')) return;
+  if (e.key === 'ArrowLeft') detailStep(-1);
+  else if (e.key === 'ArrowRight') detailStep(1);
+  else if (e.key === 'Escape') el('detailOverlay').classList.remove('open');
 });
 
 function openRandomRecord() {

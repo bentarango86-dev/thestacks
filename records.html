@@ -131,10 +131,7 @@ function renderFlatCrate() {
   const labelFilter = el('filterLabel').value;
 
   let list = records.filter(r => {
-    const matchesSearch = !search ||
-      r.album.toLowerCase().includes(search) ||
-      r.artist.toLowerCase().includes(search) ||
-      (r.genre || '').toLowerCase().includes(search);
+    const matchesSearch = !search || recordMatchesQuery(r, search);
     const matchesGenre = !genreFilter ||
       (genreFilter === '__none__' ? !r.genre : r.genre === genreFilter);
     const matchesYear = !yearFilter || r.year === yearFilter;
@@ -160,6 +157,8 @@ function renderFlatCrate() {
       default: return ((a.addedAt||0) - (b.addedAt||0)) * mult;
     }
   });
+
+  lastListContext = list;
 
   if (list.length === 0) {
     crate.innerHTML = records.length === 0
@@ -195,10 +194,10 @@ function renderFlatCrate() {
             <td class="cell-album" style="cursor:pointer;" onclick='openDetailModal("${r.id}")'>${escapeHtml(r.album)}</td>
             <td class="cell-artist">${escapeHtml(r.artist)}</td>
             <td class="cell-muted">${r.year || '—'}</td>
-            <td class="cell-muted">${escapeHtml(r.genre || '—')}</td>
-            <td class="cell-muted">${escapeHtml(r.format || '—')}</td>
-            <td class="cell-muted">${escapeHtml(r.condition || '—')}</td>
-            <td class="cell-muted">${r.price ? '$' + r.price.toFixed(2) : '—'}</td>
+            <td>${r.genre ? `<span class="meta-chip">${escapeHtml(r.genre)}</span>` : '<span class="cell-muted">—</span>'}</td>
+            <td>${r.format ? `<span class="meta-chip">${escapeHtml(r.format)}</span>` : '<span class="cell-muted">—</span>'}</td>
+            <td>${r.condition ? `<span class="meta-chip">${escapeHtml(r.condition)}</span>` : '<span class="cell-muted">—</span>'}</td>
+            <td class="cell-price">${r.price ? '$' + r.price.toFixed(2) : '—'}</td>
             <td class="cell-muted">${escapeHtml(r.label || '—')}</td>
             <td>${tracks.length ? `<button class="row-btn" onclick='openTrackModal("${r.id}")' title="View track listing"><i class="ti ti-list-details" style="vertical-align:-2px;"></i> ${tracks.length}</button>` : ''}</td>
             <td class="row-actions-cell">
@@ -245,20 +244,24 @@ el('filterCondition').addEventListener('change', renderFlatCrate);
 el('filterCountry').addEventListener('change', renderFlatCrate);
 el('filterLabel').addEventListener('change', renderFlatCrate);
 
-// Arrived here from a stack tile — pre-filter to that genre.
+// Arrived here from a stack tile (?genre=) or the homepage search's
+// "refine with filters" link (?q=) — pre-apply whichever was passed.
 const urlParams = new URLSearchParams(window.location.search);
 const genreParam = urlParams.get('genre');
-if (genreParam) {
-  const applyGenreFilter = () => {
-    el('filterGenre').value = genreParam;
-    tableSort = { key: 'artist', dir: 'asc' };
+const queryParam = urlParams.get('q');
+if (genreParam || queryParam) {
+  const applyUrlParams = () => {
+    if (genreParam) {
+      el('filterGenre').value = genreParam;
+      tableSort = { key: 'artist', dir: 'asc' };
+    }
+    if (queryParam) el('search').value = queryParam;
     renderFlatCrate();
   };
-  const originalRenderPage = renderPage;
   renderPage = function() {
     renderStats();
     renderGenreFilter();
-    applyGenreFilter();
+    applyUrlParams();
   };
 }
 </script>
