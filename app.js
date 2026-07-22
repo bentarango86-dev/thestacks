@@ -901,8 +901,13 @@ function buildShelfCover(r, listKey) {
     ? `<img src="${escapeAttr(r.coverUrl)}" alt="" loading="lazy" onload="this.parentElement.classList.remove('img-loading')" onerror="this.parentElement.classList.remove('img-loading'); this.outerHTML='<div class=&quot;gallery-cover-fallback&quot;><i class=&quot;ti ${iconForGenre(r.genre)}&quot;></i></div>'">`
     : `<div class="gallery-cover-fallback"><i class="ti ${iconForGenre(r.genre)}"></i></div>`;
   const key = escapeAttr(JSON.stringify(listKey));
+  // Deterministic per-record lean (7–11°) from the id, so a record always sits
+  // the same way rather than jumping around between renders.
+  let hash = 0;
+  for (let i = 0; i < r.id.length; i++) hash = (hash * 31 + r.id.charCodeAt(i)) | 0;
+  const lean = 7 + (Math.abs(hash) % 5);
   return `
-    <div class="gallery-cover-wrap shelf-cover${r.coverUrl ? ' img-loading' : ''}" onclick='setShelfContext(${key}); handleGalleryTap(this, "${r.id}")'>
+    <div class="gallery-cover-wrap shelf-cover${r.coverUrl ? ' img-loading' : ''}" style="--lean:${lean}deg;" onclick='setShelfContext(${key}); handleGalleryTap(this, "${r.id}")'>
       ${coverHtml}
       <div class="shelf-cover-overlay">
         <div class="shelf-cover-text">
@@ -910,9 +915,7 @@ function buildShelfCover(r, listKey) {
           <div class="shelf-cover-artist">${escapeHtml(r.artist)}</div>
         </div>
         <div class="shelf-cover-actions">
-          <button onclick='event.stopPropagation(); setShelfContext(${key}); openDetailModal("${r.id}")' title="View"><i class="ti ti-eye"></i></button>
-          <button onclick='event.stopPropagation(); setShelfContext(${key}); editRecord("${r.id}")' title="Edit"><i class="ti ti-pencil"></i></button>
-          <button class="star ${r.isFace ? 'active' : ''}" onclick='event.stopPropagation(); setShelfContext(${key}); toggleFace("${r.id}")' title="Favorite"><i class="ti ti-star"></i></button>
+          <button onclick='event.stopPropagation(); setShelfContext(${key}); openDetailModal("${r.id}")' title="View record"><i class="ti ti-eye"></i>View</button>
         </div>
       </div>
     </div>
