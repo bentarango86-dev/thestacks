@@ -178,10 +178,10 @@ function renderFlatCrate() {
           const tracks = r.tracklist ? r.tracklist.split('\n').filter(Boolean) : [];
           return `
           <tr>
-            <td>${r.coverUrl
+            <td style="cursor:pointer;" onclick='openDetailModal("${r.id}")'>${r.coverUrl
               ? `<img class="thumb" src="${escapeAttr(r.coverUrl)}" alt="" loading="lazy" onerror="this.outerHTML='<div class=&quot;thumb-fallback&quot;><i class=&quot;ti ti-music&quot;></i></div>'">`
               : `<div class="thumb-fallback"><i class="ti ti-music"></i></div>`}</td>
-            <td class="cell-album">${escapeHtml(r.album)}</td>
+            <td class="cell-album" style="cursor:pointer;" onclick='openDetailModal("${r.id}")'>${escapeHtml(r.album)}</td>
             <td class="cell-artist">${escapeHtml(r.artist)}</td>
             <td class="cell-muted">${r.year || '—'}</td>
             <td class="cell-muted">${escapeHtml(r.genre || '—')}</td>

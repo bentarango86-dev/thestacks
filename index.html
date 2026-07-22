@@ -34,11 +34,21 @@
 
   <div id="appBody" style="display:none;">
 
-  <div class="stats" id="stats"></div>
-
   <div class="view-tabs">
     <a href="index.html" class="tab-btn active"><i class="ti ti-stack-2" style="font-size:15px; vertical-align:-2px; margin-right:4px;"></i>Stacks</a>
     <a href="records.html" class="tab-btn"><i class="ti ti-list" style="font-size:15px; vertical-align:-2px; margin-right:4px;"></i>All Records</a>
+  </div>
+
+  <div class="home-search-row" id="homeSearchRow">
+    <div class="home-search-wrap">
+      <i class="ti ti-search"></i>
+      <input type="text" id="homeSearch" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false">
+    </div>
+    <div class="quick-row" id="homeQuickRow">
+      <button type="button" class="chip-btn" id="randomBtn"><i class="ti ti-dice-5"></i>Random Record</button>
+      <a href="#" class="chip-btn" id="continueBtn" style="display:none;"><i class="ti ti-history"></i><span id="continueLabel"></span></a>
+      <button class="btn btn-primary" id="addBtn" style="margin-left:auto;">+ Add Record</button>
+    </div>
   </div>
 
   <div class="controls" id="stacksControls">
@@ -47,7 +57,6 @@
       <option value="count-desc">Most records</option>
       <option value="count-asc">Fewest records</option>
     </select>
-    <button class="btn btn-primary" id="addBtn" style="margin-left:auto;">+ Add Record</button>
   </div>
 
   <div class="controls" id="drillControls" style="display:none;">
@@ -62,14 +71,19 @@
     <button class="btn btn-primary" id="addBtnDrill" style="margin-left:auto;">+ Add Record</button>
   </div>
 
+  <div id="searchResultsSection" style="display:none;">
+    <h2 class="section-heading" id="searchResultsHeading"></h2>
+    <div class="gallery-grid" id="searchResultsGrid"></div>
+  </div>
+
   <div id="recentlyAddedSection" style="margin-bottom:28px;">
-    <h2 style="font-family:'Fraunces',serif; font-weight:700; font-size:16px; color:var(--ink); margin-bottom:12px;">Recently Added</h2>
+    <h2 class="section-heading">Recently Added</h2>
     <div id="recentlyAddedRow" style="display:flex; gap:14px; overflow-x:auto; padding-bottom:4px;"></div>
   </div>
 
   <div class="stacks-grid" id="stacksGrid"></div>
   <h2 id="drillHeading" style="display:none; font-family:'Fraunces',serif; font-weight:700; font-size:22px; color:var(--ink); margin-bottom:16px;"></h2>
-  <div class="drill-grid" id="drillCards" style="display:none;"></div>
+  <div class="gallery-grid" id="drillCards" style="display:none;"></div>
   </div>
 </div>
 
@@ -79,28 +93,22 @@
 <script src="app.js"></script>
 <script>
 // ---- STACKS PAGE ----
-function iconForGenre(genre) {
-  const g = (genre || '').toLowerCase();
-  const map = [
-    [['rock', 'grunge', 'punk', 'metal'], 'ti-guitar-pick'],
-    [['jazz', 'blues'], 'ti-piano'],
-    [['classical', 'orchestra'], 'ti-violin'],
-    [['electronic', 'techno', 'house', 'edm'], 'ti-wave-square'],
-    [['hip hop', 'rap'], 'ti-microphone-2'],
-    [['country', 'folk', 'americana'], 'ti-guitar-pick'],
-    [['soundtrack', 'score'], 'ti-movie'],
-  ];
-  for (const [keywords, icon] of map) {
-    if (keywords.some(k => g.includes(k))) return icon;
-  }
-  return 'ti-music';
-}
+// (iconForGenre, renderGalleryGrid, handleGalleryTap, openDetailModal live in app.js — shared with records.html)
 
 // Drilling into a stack stays on this page (index.html?genre=X) rather than
 // jumping to the All Records table — it's part of the Stacks browsing
-// experience, not the spreadsheet view.
+// experience, not the spreadsheet view. Remember it so "Continue Browsing"
+// can bring the person right back next visit.
 function exploreGenre(genre) {
+  saveLastGenre(genre);
   window.location.href = 'index.html?genre=' + encodeURIComponent(genre);
+}
+
+function saveLastGenre(genre) {
+  try { localStorage.setItem('stacks:lastGenre', genre); } catch (e) { /* non-fatal */ }
+}
+function loadLastGenre() {
+  try { return localStorage.getItem('stacks:lastGenre'); } catch (e) { return null; }
 }
 
 const urlParams = new URLSearchParams(window.location.search);
@@ -218,67 +226,7 @@ function renderDrillCards() {
     }
   });
 
-  if (list.length === 0) {
-    el('drillCards').innerHTML = `<div class="empty-state">No records in this genre yet.</div>`;
-    return;
-  }
-
-  el('drillCards').innerHTML = list.map(r => {
-    const tracks = r.tracklist ? r.tracklist.split('\n').filter(Boolean) : [];
-    const coverHtml = r.coverUrl
-      ? `<img class="collector-cover" src="${escapeAttr(r.coverUrl)}" alt="" loading="lazy" onerror="this.outerHTML='<div class=&quot;collector-cover-fallback&quot;><i class=&quot;ti ${iconForGenre(r.genre)}&quot;></i></div>'">`
-      : `<div class="collector-cover-fallback"><i class="ti ${iconForGenre(r.genre)}"></i></div>`;
-    const line1 = [r.year, r.format, r.releaseType].filter(Boolean).join(' · ');
-    const line2 = [r.label, r.country].filter(Boolean).join(' · ');
-    return `
-    <div class="collector-card">
-      <div class="collector-top">
-        ${coverHtml}
-        <div class="collector-info">
-          <div class="collector-title-row">
-            <div>
-              <div class="collector-title">${escapeHtml(r.album)}</div>
-              <div class="collector-artist">${escapeHtml(r.artist)}</div>
-            </div>
-            <div class="icon-row">
-              <button class="star ${r.isFace ? 'active' : ''}" onclick='toggleFace("${r.id}")' title="${r.isFace ? 'Stack cover' : 'Set as stack cover'}"><i class="ti ti-star"></i></button>
-              <button onclick='editRecord("${r.id}")' title="Edit"><i class="ti ti-pencil"></i></button>
-              <button class="danger" onclick='deleteRecord("${r.id}")' title="Delete"><i class="ti ti-trash"></i></button>
-            </div>
-          </div>
-          ${line1 ? `<div class="collector-metaline">${escapeHtml(line1)}</div>` : ''}
-          ${line2 ? `<div class="collector-metaline">${escapeHtml(line2)}</div>` : ''}
-          <div class="collector-chips">
-            <span class="collector-chip condition">${r.condition}</span>
-          </div>
-        </div>
-      </div>
-      ${tracks.length ? `<div class="collector-tracklist">${tracks.map(t => escapeHtml(t)).join('<br>')}</div>` : ''}
-      <div class="collector-actions">
-        <span style="display:flex; gap:14px;">
-          ${r.price ? `<span>Paid $${r.price.toFixed(2)}</span>` : ''}
-          ${r.estimatedValue ? `<span>Est. Value $${r.estimatedValue.toFixed(2)}</span>` : ''}
-        </span>
-        ${tracks.length ? `
-        <button class="collector-details-toggle" onclick='toggleCardDetails(this)'>
-          View Details<i class="ti ti-chevron-down"></i>
-        </button>` : '<span></span>'}
-      </div>
-    </div>
-  `;
-  }).join('');
-
-  armLazyImageTimeouts(el('drillCards'));
-}
-
-function toggleCardDetails(btn) {
-  btn.classList.toggle('open');
-  const card = btn.closest('.collector-card');
-  const tracklist = card.querySelector('.collector-tracklist');
-  tracklist.classList.toggle('open');
-  btn.innerHTML = btn.classList.contains('open')
-    ? 'Hide Details<i class="ti ti-chevron-down"></i>'
-    : 'View Details<i class="ti ti-chevron-down"></i>';
+  renderGalleryGrid(el('drillCards'), list);
 }
 
 function renderRecentlyAdded() {
@@ -301,20 +249,64 @@ function renderRecentlyAdded() {
   }).join('');
 }
 
+// ---- SEARCH (primary navigation on the homepage) ----
+function renderSearchResults() {
+  const q = el('homeSearch').value.trim().toLowerCase();
+  if (!q) {
+    el('searchResultsSection').style.display = 'none';
+    el('recentlyAddedSection').style.display = 'block';
+    el('stacksGrid').style.display = 'grid';
+    return true; // no query — caller should render the normal homepage
+  }
+  const matches = records.filter(r =>
+    r.album.toLowerCase().includes(q) ||
+    r.artist.toLowerCase().includes(q) ||
+    (r.genre || '').toLowerCase().includes(q)
+  );
+  el('recentlyAddedSection').style.display = 'none';
+  el('stacksGrid').style.display = 'none';
+  el('searchResultsSection').style.display = 'block';
+  el('searchResultsHeading').textContent = `${matches.length} result${matches.length === 1 ? '' : 's'}`;
+  renderGalleryGrid(el('searchResultsGrid'), matches);
+  return false;
+}
+el('homeSearch').addEventListener('input', () => {
+  if (drillGenre) return; // search only drives the top-level homepage view
+  if (renderSearchResults()) renderStacksGrid();
+});
+
+el('randomBtn').addEventListener('click', openRandomRecord);
+
 function renderPage() {
   renderStats();
   if (drillGenre) {
+    el('homeSearchRow').style.display = 'none';
     el('stacksControls').style.display = 'none';
     el('drillControls').style.display = 'flex';
     el('stacksGrid').style.display = 'none';
     el('recentlyAddedSection').style.display = 'none';
+    el('searchResultsSection').style.display = 'none';
     el('drillHeading').style.display = 'block';
     el('drillCards').style.display = 'grid';
     renderDrillCards();
   } else {
-    el('recentlyAddedSection').style.display = 'block';
-    renderRecentlyAdded();
-    renderStacksGrid();
+    el('homeSearchRow').style.display = 'block';
+    el('homeSearch').placeholder = `Search within your ${records.length} record${records.length === 1 ? '' : 's'}`;
+
+    const lastGenre = loadLastGenre();
+    const lastGenreStillExists = lastGenre && records.some(r => (r.genre || '') === lastGenre || (lastGenre === '__none__' && !r.genre));
+    if (lastGenreStillExists) {
+      el('continueLabel').textContent = `Continue browsing ${lastGenre === '__none__' ? 'No genre' : lastGenre}`;
+      el('continueBtn').href = 'index.html?genre=' + encodeURIComponent(lastGenre);
+      el('continueBtn').style.display = 'inline-flex';
+    } else {
+      el('continueBtn').style.display = 'none';
+    }
+
+    if (renderSearchResults()) {
+      renderRecentlyAdded();
+      renderStacksGrid();
+    }
   }
 }
 </script>

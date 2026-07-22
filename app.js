@@ -641,6 +641,7 @@ async function toggleFace(id) {
 }
 
 function renderStats() {
+  if (!el('stats')) return;
   const total = records.length;
   const hasAnyValue = records.some(r => r.estimatedValue > 0);
   const value = records.reduce((sum, r) => sum + (r.estimatedValue || 0), 0);
@@ -676,6 +677,141 @@ function renderGenreFilter() {
     genres.map(g => `<option value="${escapeAttr(g)}">${escapeHtml(g)}</option>`).join('') +
     (hasUnsorted ? '<option value="__none__">No genre</option>' : '');
   filterEl.value = current;
+}
+
+// ---- Shared genre → icon mapping (used by stacks tiles, gallery cards, detail modal) ----
+function iconForGenre(genre) {
+  const g = (genre || '').toLowerCase();
+  const map = [
+    [['rock', 'grunge', 'punk', 'metal'], 'ti-guitar-pick'],
+    [['jazz', 'blues'], 'ti-piano'],
+    [['classical', 'orchestra'], 'ti-violin'],
+    [['electronic', 'techno', 'house', 'edm'], 'ti-wave-square'],
+    [['hip hop', 'rap'], 'ti-microphone-2'],
+    [['country', 'folk', 'americana'], 'ti-guitar-pick'],
+    [['soundtrack', 'score'], 'ti-movie'],
+  ];
+  for (const [keywords, icon] of map) {
+    if (keywords.some(k => g.includes(k))) return icon;
+  }
+  return 'ti-music';
+}
+
+// ---- GALLERY CARD GRID (album-art-first browsing — replaces the old dense collector cards) ----
+// Desktop: hover reveals condition/year + quick actions.
+// Mobile (no hover capability): first tap reveals the same overlay, second tap opens the detail modal.
+function renderGalleryGrid(container, list) {
+  if (!container) return;
+  if (list.length === 0) {
+    container.innerHTML = `<div class="empty-state">No records here yet.</div>`;
+    return;
+  }
+  container.innerHTML = list.map(r => {
+    const coverHtml = r.coverUrl
+      ? `<img src="${escapeAttr(r.coverUrl)}" alt="" loading="lazy" onerror="this.outerHTML='<div class=&quot;gallery-cover-fallback&quot;><i class=&quot;ti ${iconForGenre(r.genre)}&quot;></i></div>'">`
+      : `<div class="gallery-cover-fallback"><i class="ti ${iconForGenre(r.genre)}"></i></div>`;
+    return `
+      <div class="gallery-card">
+        <div class="gallery-cover-wrap" onclick='handleGalleryTap(this, "${r.id}")'>
+          ${coverHtml}
+          <div class="gallery-overlay">
+            <div class="gallery-overlay-meta">
+              <span>${escapeHtml(r.condition || '')}</span>
+              <span>${escapeHtml(r.year || '')}</span>
+            </div>
+            <div class="gallery-overlay-actions">
+              <button class="star ${r.isFace ? 'active' : ''}" onclick='event.stopPropagation(); toggleFace("${r.id}")' title="Set as stack cover"><i class="ti ti-star"></i></button>
+              <button onclick='event.stopPropagation(); editRecord("${r.id}")' title="Edit"><i class="ti ti-pencil"></i></button>
+              <button onclick='event.stopPropagation(); openDetailModal("${r.id}")' title="View"><i class="ti ti-eye"></i></button>
+            </div>
+          </div>
+        </div>
+        <div class="gallery-label">
+          <div class="gallery-album">${escapeHtml(r.album)}</div>
+          <div class="gallery-artist">${escapeHtml(r.artist)}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+  armLazyImageTimeouts(container);
+}
+
+function handleGalleryTap(wrap, id) {
+  const supportsHover = window.matchMedia('(hover: hover)').matches;
+  if (supportsHover) {
+    openDetailModal(id);
+    return;
+  }
+  if (wrap.classList.contains('revealed')) {
+    openDetailModal(id);
+  } else {
+    document.querySelectorAll('.gallery-cover-wrap.revealed').forEach(w => {
+      if (w !== wrap) w.classList.remove('revealed');
+    });
+    wrap.classList.add('revealed');
+  }
+}
+
+// ---- ALBUM DETAIL MODAL ("opening the record jacket") ----
+function openDetailModal(id) {
+  const r = records.find(x => x.id === id);
+  if (!r) return;
+
+  if (r.coverUrl) {
+    el('detailCover').src = r.coverUrl;
+    el('detailCover').style.display = 'block';
+    el('detailCoverFallback').style.display = 'none';
+  } else {
+    el('detailCover').style.display = 'none';
+    el('detailCoverFallback').style.display = 'flex';
+    el('detailCoverFallback').innerHTML = `<i class="ti ${iconForGenre(r.genre)}"></i>`;
+  }
+
+  el('detailAlbum').textContent = r.album;
+  el('detailArtist').textContent = r.artist;
+
+  const metaLines = [
+    [r.year, r.format, r.releaseType].filter(Boolean).join(' · '),
+    [r.label, r.catalogNumber].filter(Boolean).join(' · '),
+    r.country
+  ].filter(Boolean);
+  el('detailMeta').innerHTML = metaLines.map(l => `<div>${escapeHtml(l)}</div>`).join('');
+
+  el('detailCondition').textContent = r.condition || '—';
+  el('detailPrice').textContent = r.price ? '$' + r.price.toFixed(2) : '—';
+  el('detailValue').textContent = r.estimatedValue ? '$' + r.estimatedValue.toFixed(2) : '—';
+
+  if (r.notes) {
+    el('detailNotes').textContent = r.notes;
+    el('detailNotesWrap').style.display = 'block';
+  } else {
+    el('detailNotesWrap').style.display = 'none';
+  }
+
+  const tracks = r.tracklist ? r.tracklist.split('\n').filter(Boolean) : [];
+  if (tracks.length) {
+    el('detailTracklist').innerHTML = tracks.map(t => `<li>${escapeHtml(t)}</li>`).join('');
+    el('detailTracklistWrap').style.display = 'block';
+  } else {
+    el('detailTracklistWrap').style.display = 'none';
+  }
+
+  el('detailStarBtn').classList.toggle('active', !!r.isFace);
+  el('detailStarBtn').onclick = () => toggleFace(r.id);
+  el('detailEditBtn').onclick = () => { el('detailOverlay').classList.remove('open'); editRecord(r.id); };
+  el('detailDeleteBtn').onclick = () => deleteRecord(r.id);
+
+  el('detailOverlay').classList.add('open');
+}
+el('detailCloseBtn').addEventListener('click', () => el('detailOverlay').classList.remove('open'));
+el('detailOverlay').addEventListener('click', e => {
+  if (e.target === el('detailOverlay')) el('detailOverlay').classList.remove('open');
+});
+
+function openRandomRecord() {
+  if (!records.length) return;
+  const r = records[Math.floor(Math.random() * records.length)];
+  openDetailModal(r.id);
 }
 
 function armLazyImageTimeouts(container, ms = 8000) {

@@ -53,6 +53,41 @@ document.getElementById('modals-root').innerHTML = `
   </div>
 </div>
 
+<div class="overlay" id="detailOverlay">
+  <div class="modal detail-modal">
+    <div class="detail-modal-cover-wrap" id="detailCoverWrap">
+      <img id="detailCover" src="" alt="" style="display:none;">
+      <div class="gallery-cover-fallback" id="detailCoverFallback"><i class="ti ti-music"></i></div>
+      <button type="button" class="detail-modal-close" id="detailCloseBtn"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="detail-modal-body">
+      <div class="detail-modal-title-row">
+        <div>
+          <div class="detail-modal-album" id="detailAlbum"></div>
+          <div class="detail-modal-artist" id="detailArtist"></div>
+        </div>
+        <div class="detail-modal-actions">
+          <button type="button" class="star" id="detailStarBtn" title="Set as stack cover"><i class="ti ti-star"></i></button>
+          <button type="button" id="detailEditBtn" title="Edit"><i class="ti ti-pencil"></i></button>
+          <button type="button" class="danger" id="detailDeleteBtn" title="Delete"><i class="ti ti-trash"></i></button>
+        </div>
+      </div>
+      <div class="detail-modal-meta" id="detailMeta"></div>
+      <div class="detail-modal-facts">
+        <div class="fact"><div class="fv" id="detailCondition">—</div><div class="fl">Condition</div></div>
+        <div class="fact"><div class="fv" id="detailPrice">—</div><div class="fl">Paid</div></div>
+        <div class="fact"><div class="fv" id="detailValue">—</div><div class="fl">Est. Value</div></div>
+      </div>
+      <div class="detail-modal-notes" id="detailNotesWrap" style="display:none;">
+        <div id="detailNotes"></div>
+      </div>
+      <div id="detailTracklistWrap" style="display:none;">
+        <ol class="detail-modal-tracklist" id="detailTracklist"></ol>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="overlay" id="helpOverlay">
   <div class="modal help-modal">
     <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px;">

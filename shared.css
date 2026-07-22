@@ -267,6 +267,150 @@
     letter-spacing: 0.06em;
   }
 
+  /* ---------- HOME SEARCH (primary nav) ---------- */
+  .home-search-row { margin-bottom: 26px; }
+  .home-search-wrap { position: relative; }
+  .home-search-wrap i.ti-search {
+    position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+    color: #8a7d63; font-size: 16px; pointer-events: none;
+  }
+  #homeSearch {
+    width: 100%;
+    padding: 13px 14px 13px 40px;
+    font-size: 14.5px;
+    border: 2px solid var(--navy);
+    border-radius: 6px;
+    background: var(--paper);
+  }
+  #homeSearch:focus { border-color: var(--amber); }
+  #homeSearch::placeholder { color: #8a7d63; }
+
+  .quick-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; align-items: center; }
+  .chip-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; font-weight: 600;
+    padding: 8px 13px; border-radius: 20px;
+    border: 1.5px solid var(--line); background: var(--paper); color: var(--ink);
+    cursor: pointer; transition: border-color .15s ease, background .15s ease;
+    text-decoration: none;
+  }
+  .chip-btn:hover { border-color: var(--amber-dim); background: #fff8ec; }
+  .chip-btn i { font-size: 13px; color: var(--amber-dim); }
+
+  /* ---------- GALLERY CARD (album-art-first) ---------- */
+  .gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 26px 16px;
+  }
+  .gallery-card { display: flex; flex-direction: column; }
+  .gallery-cover-wrap {
+    position: relative;
+    aspect-ratio: 1 / 1;
+    border-radius: 7px;
+    overflow: hidden;
+    cursor: pointer;
+    background: var(--navy);
+    box-shadow: 0 4px 12px rgba(12,35,64,0.18);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .gallery-cover-wrap:hover, .gallery-cover-wrap.revealed {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 24px rgba(12,35,64,0.3);
+  }
+  .gallery-cover-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .gallery-cover-fallback {
+    width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
+  }
+  .gallery-cover-fallback i { font-size: 30px; color: var(--amber); }
+  .gallery-overlay {
+    position: absolute; inset: 0;
+    background: linear-gradient(180deg, rgba(12,35,64,0) 42%, rgba(12,35,64,0.92) 100%);
+    display: flex; flex-direction: column; justify-content: flex-end;
+    padding: 10px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+  .gallery-cover-wrap:hover .gallery-overlay,
+  .gallery-cover-wrap.revealed .gallery-overlay { opacity: 1; }
+  .gallery-overlay-meta {
+    display: flex; justify-content: space-between;
+    font-family: 'IBM Plex Mono', monospace; font-size: 10px;
+    color: var(--vinyl); text-transform: uppercase; letter-spacing: 0.05em;
+    margin-bottom: 8px;
+  }
+  .gallery-overlay-actions { display: flex; justify-content: flex-end; gap: 4px; }
+  .gallery-overlay-actions button {
+    background: rgba(255,255,255,0.14); border: none; color: var(--vinyl);
+    width: 27px; height: 27px; border-radius: 5px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; font-size: 13px;
+    transition: background 0.15s ease;
+  }
+  .gallery-overlay-actions button:hover { background: rgba(255,255,255,0.3); }
+  .gallery-overlay-actions button.star.active { color: var(--amber); background: rgba(255,255,255,0.3); }
+  .gallery-label { text-align: center; margin-top: 9px; }
+  .gallery-album {
+    font-family: 'Fraunces', serif; font-weight: 700; font-size: 13.5px; color: var(--ink);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .gallery-artist {
+    font-size: 11.5px; color: #8a7d63; margin-top: 1px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+
+  .section-heading {
+    font-family: 'Fraunces', serif; font-weight: 700; font-size: 16px;
+    color: var(--ink); margin-bottom: 12px;
+  }
+
+  /* ---------- DETAIL MODAL (open the record jacket) ---------- */
+  .detail-modal { max-width: 480px; padding: 0; overflow: hidden; }
+  .detail-modal-cover-wrap {
+    width: 100%; aspect-ratio: 1 / 1; background: var(--navy);
+    display: flex; align-items: center; justify-content: center; position: relative;
+  }
+  .detail-modal-cover-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .detail-modal-cover-wrap .gallery-cover-fallback i { font-size: 46px; }
+  .detail-modal-close {
+    position: absolute; top: 10px; right: 10px;
+    background: rgba(12,35,64,0.55); border: none; color: var(--vinyl);
+    width: 32px; height: 32px; border-radius: 16px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; font-size: 15px;
+  }
+  .detail-modal-body { padding: 22px 24px 24px; }
+  .detail-modal-title-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+  .detail-modal-album { font-family: 'Fraunces', serif; font-weight: 700; font-size: 21px; line-height: 1.2; }
+  .detail-modal-artist { font-size: 14px; color: #55503f; margin-top: 3px; }
+  .detail-modal-actions { display: flex; gap: 2px; flex-shrink: 0; }
+  .detail-modal-actions button {
+    background: none; border: none; color: #8a7d63; cursor: pointer;
+    font-size: 15px; padding: 6px 7px; border-radius: 5px;
+  }
+  .detail-modal-actions button:hover { background: rgba(12,35,64,0.07); color: var(--ink); }
+  .detail-modal-actions button.danger:hover { color: var(--rust); }
+  .detail-modal-actions button.star.active { color: var(--amber); }
+  .detail-modal-meta { font-size: 12.5px; color: #6b5f4d; line-height: 1.7; margin-top: 10px; }
+  .detail-modal-facts {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px;
+    background: var(--line-light); border: 1px solid var(--line-light);
+    margin-top: 16px; font-family: 'IBM Plex Mono', monospace;
+  }
+  .detail-modal-facts .fact { background: var(--paper); padding: 10px 12px; }
+  .detail-modal-facts .fact .fv { font-size: 14px; font-weight: 700; color: var(--amber); }
+  .detail-modal-facts .fact .fl { font-size: 9.5px; letter-spacing: 0.06em; text-transform: uppercase; color: #8a7d63; margin-top: 2px; }
+  .detail-modal-notes { font-size: 13px; color: #3a362b; line-height: 1.6; margin-top: 16px; padding-top: 14px; border-top: 1px dashed #d8c6a0; }
+  .detail-modal-tracklist {
+    margin-top: 16px; padding-top: 14px; border-top: 1px dashed #d8c6a0;
+    font-size: 12.5px; color: #4a4030; line-height: 1.7; list-style: none;
+    max-height: 220px; overflow-y: auto;
+  }
+
+  @keyframes modalPop {
+    from { opacity: 0; transform: scale(0.96) translateY(6px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  .overlay.open .modal { animation: modalPop 0.18s ease-out; }
+
   /* ---------- COLLECTOR CARD ---------- */
   .collector-card {
     background: var(--paper);
@@ -507,6 +651,9 @@
     .logo-mark { width: 48px; height: 48px; }
     .header-actions { width: 100%; justify-content: flex-end; margin-left: 0; }
     .field-row { grid-template-columns: 1fr; }
+    .gallery-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 20px 12px; }
+    .detail-modal { max-width: 100%; }
+    .detail-modal-facts { grid-template-columns: repeat(2, 1fr); }
   }
 
 /* Nav links styled as tabs (replaces old JS-toggled tab buttons) */
