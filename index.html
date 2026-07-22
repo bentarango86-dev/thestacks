@@ -28,6 +28,7 @@
       <span id="userEmail" style="font-family:'IBM Plex Mono',monospace; font-size:11px; color:rgba(12,35,64,0.55);"></span>
       <button class="btn btn-ghost" id="helpBtn" style="display:none;"><i class="ti ti-help-circle" style="font-size:15px; vertical-align:-2px; margin-right:3px;"></i>Help</button>
       <button class="btn btn-ghost" id="securityBtn" style="display:none;"><i class="ti ti-shield-lock" style="font-size:15px; vertical-align:-2px; margin-right:3px;"></i>Security</button>
+      <button class="btn btn-ghost" id="exportBtn" style="display:none;"><i class="ti ti-download" style="font-size:15px; vertical-align:-2px; margin-right:3px;"></i>Export CSV</button>
       <button class="btn btn-ghost" id="signOutBtn" style="display:none;">Sign out</button>
     </div>
   </header>
@@ -43,6 +44,7 @@
     <div class="home-search-wrap">
       <i class="ti ti-search"></i>
       <input type="text" id="homeSearch" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false">
+      <button type="button" class="search-clear-btn" id="homeSearchClear" title="Clear search"><i class="ti ti-x"></i></button>
     </div>
     <div class="quick-row" id="homeQuickRow">
       <button type="button" class="chip-btn" id="randomBtn"><i class="ti ti-dice-5"></i>Random Record</button>
@@ -69,6 +71,11 @@
       <option value="value-desc">Value (high–low)</option>
     </select>
     <button class="btn btn-primary" id="addBtnDrill" style="margin-left:auto;">+ Add Record</button>
+  </div>
+
+  <div class="loading-state" id="loadingState">
+    <div class="loading-spinner"></div>
+    <span>Loading your collection…</span>
   </div>
 
   <div id="searchResultsSection" style="display:none;">
@@ -155,7 +162,11 @@ el('addBtnDrill').addEventListener('click', () => openModal(null));
 
 function renderStacksGrid() {
   if (records.length === 0) {
-    el('stacksGrid').innerHTML = `<div class="empty-state" style="grid-column:1/-1;">The crate is empty. Add your first record.</div>`;
+    el('stacksGrid').innerHTML = `
+      <button type="button" class="empty-state-cta" style="grid-column:1/-1;" onclick="openModal(null)">
+        <i class="ti ti-plus"></i>
+        The crate is empty — add your first record
+      </button>`;
     return;
   }
 
@@ -184,7 +195,7 @@ function renderStacksGrid() {
     const label = genre === '__none__' ? 'No genre' : genre;
     const fallbackHtml = `<div class="face-fallback"><i class="ti ${iconForGenre(genre)}"></i></div>`;
     const faceInner = face.coverUrl
-      ? `<img src="${escapeAttr(face.coverUrl)}" alt="" loading="lazy" onerror="this.parentElement.innerHTML='${fallbackHtml.replace(/"/g, '&quot;').replace(/'/g, "\\'")}'">`
+      ? `<img src="${escapeAttr(face.coverUrl)}" alt="" loading="lazy" onload="this.parentElement.classList.remove('img-loading')" onerror="this.parentElement.classList.remove('img-loading'); this.parentElement.innerHTML='${fallbackHtml.replace(/"/g, '&quot;').replace(/'/g, "\\'")}'">`
       : fallbackHtml;
 
     // Pick real records for the back layers, preferring ones with cover art
@@ -211,7 +222,7 @@ function renderStacksGrid() {
           ${backLayers[2] ? `<div class="stack-sleeve s4">${sleeveInner(backLayers[2])}</div>` : ''}
           ${backLayers[1] ? `<div class="stack-sleeve s3">${sleeveInner(backLayers[1])}</div>` : ''}
           ${backLayers[0] ? `<div class="stack-sleeve s2">${sleeveInner(backLayers[0])}</div>` : ''}
-          <div class="stack-sleeve face-sleeve">${faceInner}</div>
+          <div class="stack-sleeve face-sleeve${face.coverUrl ? ' img-loading' : ''}">${faceInner}</div>
           ${badge}
         </div>
         <div class="stack-label">
@@ -285,8 +296,11 @@ function renderSearchResults() {
   renderGalleryGrid(el('searchResultsGrid'), matches);
   return false;
 }
-el('homeSearch').addEventListener('input', () => {
+el('homeSearch').addEventListener('input', debounce(() => {
   if (drillGenre) return; // search only drives the top-level homepage view
+  if (renderSearchResults()) renderStacksGrid();
+}, 150));
+wireSearchClear('homeSearch', 'homeSearchClear', () => {
   if (renderSearchResults()) renderStacksGrid();
 });
 

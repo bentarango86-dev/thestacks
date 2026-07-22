@@ -74,8 +74,10 @@ sb.auth.onAuthStateChange((_event, session) => {
     el('signOutBtn').style.display = 'none';
     el('securityBtn').style.display = 'none';
     el('helpBtn').style.display = 'none';
+    el('exportBtn').style.display = 'none';
     el('userEmail').textContent = '';
     records = [];
+    clearRecordsCache();
   }
 });
 
@@ -91,6 +93,7 @@ async function checkAalAndProceed() {
     el('appBody').style.display = 'none';
     el('securityBtn').style.display = 'none';
     el('helpBtn').style.display = 'none';
+    el('exportBtn').style.display = 'none';
     el('signOutBtn').style.display = 'none';
     el('mfaChallengeOverlay').classList.add('open');
     el('mfaChallengeCode').value = '';
@@ -103,6 +106,7 @@ async function checkAalAndProceed() {
     el('signOutBtn').style.display = 'inline-block';
     el('securityBtn').style.display = 'inline-block';
     el('helpBtn').style.display = 'inline-block';
+    el('exportBtn').style.display = 'inline-block';
     el('userEmail').textContent = currentUser.email;
     loadRecords();
   }
@@ -233,17 +237,40 @@ el('mfaDisableBtn').addEventListener('click', async () => {
 });
 
 // ---- RECORD CRUD (Supabase) ----
-async function loadRecords() {
-  const { data, error } = await sb
-    .from('records')
-    .select('*')
-    .order('added_at', { ascending: false });
-  if (error) {
-    console.error(error);
-    alert('Could not load your collection: ' + error.message);
-    return;
-  }
-  records = (data || []).map(r => ({
+// ---- RECORDS CACHE (sessionStorage) ----
+// Lets a page navigation (Stacks → All Records, drilling into a genre, etc.)
+// render instantly from the last known list instead of showing a blank
+// screen while Supabase re-fetches on every single click. Short freshness
+// window keeps it from ever going noticeably stale.
+const RECORDS_CACHE_KEY = 'stacks:recordsCache';
+const RECORDS_CACHE_FRESH_MS = 60000;
+
+function getCachedRecords() {
+  try {
+    const raw = sessionStorage.getItem(RECORDS_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || !Array.isArray(parsed.records)) return null;
+    return parsed;
+  } catch (e) { return null; }
+}
+function setCachedRecords(list) {
+  try {
+    sessionStorage.setItem(RECORDS_CACHE_KEY, JSON.stringify({
+      records: list, savedAt: Date.now(), userId: currentUser ? currentUser.id : null
+    }));
+  } catch (e) { /* private browsing / quota — non-fatal, just skip caching */ }
+}
+function clearRecordsCache() {
+  try { sessionStorage.removeItem(RECORDS_CACHE_KEY); } catch (e) { /* non-fatal */ }
+}
+
+function showLoadingState() { const l = el('loadingState'); if (l) l.style.display = 'flex'; }
+function hideLoadingState() { const l = el('loadingState'); if (l) l.style.display = 'none'; }
+
+// ---- RECORD CRUD (Supabase) ----
+function mapRow(r) {
+  return {
     id: r.id,
     album: r.album,
     artist: r.artist,
@@ -263,7 +290,39 @@ async function loadRecords() {
     tracklist: r.tracklist || '',
     isFace: r.is_face || false,
     estimatedValue: r.estimated_value || 0
-  }));
+  };
+}
+
+async function loadRecords() {
+  // Serve a fresh-enough cached list immediately (if we have one for this
+  // user) so navigating between pages doesn't flash blank while re-fetching —
+  // then quietly revalidate against the server underneath.
+  const cached = getCachedRecords();
+  const cacheIsFresh = cached && cached.userId === currentUser?.id &&
+    (Date.now() - cached.savedAt) < RECORDS_CACHE_FRESH_MS;
+
+  if (cacheIsFresh) {
+    records = cached.records;
+    renderPage();
+  } else {
+    showLoadingState();
+  }
+
+  const { data, error } = await sb
+    .from('records')
+    .select('*')
+    .order('added_at', { ascending: false });
+
+  if (error) {
+    console.error(error);
+    hideLoadingState();
+    if (!cacheIsFresh) alert('Could not load your collection: ' + error.message);
+    return;
+  }
+
+  records = (data || []).map(mapRow);
+  setCachedRecords(records);
+  hideLoadingState();
   renderPage();
 }
 
@@ -581,32 +640,74 @@ form.addEventListener('submit', async e => {
     added_at: editingId ? (records.find(r => r.id === editingId)?.addedAt || Date.now()) : Date.now()
   };
 
+  if (!editingId) {
+    const isDuplicate = records.some(r =>
+      r.album.trim().toLowerCase() === payload.album.toLowerCase() &&
+      r.artist.trim().toLowerCase() === payload.artist.toLowerCase()
+    );
+    if (isDuplicate) {
+      const proceed = confirm(`You already have "${payload.album}" by ${payload.artist} in your collection. Add it again anyway?`);
+      if (!proceed) return;
+    }
+  }
+
   const submitBtn = form.querySelector('button[type="submit"]');
   submitBtn.disabled = true;
-  let error;
-  if (editingId) {
-    ({ error } = await sb.from('records').update(payload).eq('id', editingId));
-  } else {
-    ({ error } = await sb.from('records').insert(payload));
-  }
-  submitBtn.disabled = false;
 
-  if (error) {
-    alert('Could not save: ' + error.message);
-    return;
+  if (editingId) {
+    // Optimistic: apply the edit locally and close the modal right away,
+    // reconciling with the server in the background instead of making the
+    // whole save feel like it's waiting on a network round trip.
+    const idx = records.findIndex(r => r.id === editingId);
+    const previous = idx > -1 ? records[idx] : null;
+    if (idx > -1) {
+      records[idx] = mapRow({ ...payload, id: editingId, is_face: previous.isFace });
+      setCachedRecords(records);
+    }
+    closeModal();
+    renderPage();
+    submitBtn.disabled = false;
+
+    const { error } = await sb.from('records').update(payload).eq('id', editingId);
+    if (error) {
+      if (previous && idx > -1) {
+        records[idx] = previous;
+        setCachedRecords(records);
+        renderPage();
+      }
+      alert('Could not save your changes: ' + error.message);
+    }
+  } else {
+    // A brand-new record needs its real row back from the server (id,
+    // defaults) before it can safely enter the local list, so this path
+    // still waits on the insert rather than going fully optimistic.
+    const { error } = await sb.from('records').insert(payload);
+    submitBtn.disabled = false;
+    if (error) {
+      alert('Could not save: ' + error.message);
+      return;
+    }
+    closeModal();
+    await loadRecords();
   }
-  closeModal();
-  await loadRecords();
 });
 
 async function deleteRecord(id) {
   if (!confirm('Remove this record from your collection?')) return;
+
+  const index = records.findIndex(x => x.id === id);
+  if (index === -1) return;
+  const [removed] = records.splice(index, 1);
+  setCachedRecords(records);
+  renderPage();
+
   const { error } = await sb.from('records').delete().eq('id', id);
   if (error) {
+    records.splice(index, 0, removed);
+    setCachedRecords(records);
+    renderPage();
     alert('Could not delete: ' + error.message);
-    return;
   }
-  await loadRecords();
 }
 
 function editRecord(id) {
@@ -621,8 +722,20 @@ async function toggleFace(id) {
     alert('Give this record a genre before setting it as a stack cover — covers are picked per genre.');
     return;
   }
+
+  // Optimistic: flip locally and re-render immediately, reconciling with the
+  // server afterward instead of waiting on a full refetch for one toggle.
+  const snapshot = records.map(r => ({ id: r.id, isFace: r.isFace }));
+  const turningOn = !record.isFace;
+  records.forEach(r => {
+    if (r.id === id) r.isFace = turningOn;
+    else if (turningOn && r.genre === record.genre) r.isFace = false;
+  });
+  setCachedRecords(records);
+  renderPage();
+
   try {
-    if (record.isFace) {
+    if (!turningOn) {
       const { error } = await sb.from('records').update({ is_face: false }).eq('id', id);
       if (error) throw error;
     } else {
@@ -634,8 +747,13 @@ async function toggleFace(id) {
       const { error: setErr } = await sb.from('records').update({ is_face: true }).eq('id', id);
       if (setErr) throw setErr;
     }
-    await loadRecords();
   } catch (err) {
+    snapshot.forEach(s => {
+      const r = records.find(x => x.id === s.id);
+      if (r) r.isFace = s.isFace;
+    });
+    setCachedRecords(records);
+    renderPage();
     alert('Could not update stack cover: ' + err.message);
   }
 }
@@ -708,12 +826,13 @@ function renderGalleryGrid(container, list) {
   }
   container.innerHTML = list.map(r => {
     const coverHtml = r.coverUrl
-      ? `<img src="${escapeAttr(r.coverUrl)}" alt="" loading="lazy" onerror="this.outerHTML='<div class=&quot;gallery-cover-fallback&quot;><i class=&quot;ti ${iconForGenre(r.genre)}&quot;></i></div>'">`
+      ? `<img src="${escapeAttr(r.coverUrl)}" alt="" loading="lazy" onload="this.parentElement.classList.remove('img-loading')" onerror="this.parentElement.classList.remove('img-loading'); this.outerHTML='<div class=&quot;gallery-cover-fallback&quot;><i class=&quot;ti ${iconForGenre(r.genre)}&quot;></i></div>'">`
       : `<div class="gallery-cover-fallback"><i class="ti ${iconForGenre(r.genre)}"></i></div>`;
     return `
       <div class="gallery-card">
-        <div class="gallery-cover-wrap" onclick='handleGalleryTap(this, "${r.id}")'>
+        <div class="gallery-cover-wrap${r.coverUrl ? ' img-loading' : ''}" onclick='handleGalleryTap(this, "${r.id}")'>
           ${coverHtml}
+          ${r.isFace ? '<div class="gallery-face-badge" title="Current stack cover"><i class="ti ti-star-filled"></i></div>' : ''}
           <div class="gallery-overlay">
             <div class="gallery-overlay-meta">
               <span>${escapeHtml(r.condition || '')}</span>
@@ -758,10 +877,19 @@ function openDetailModal(id) {
   if (!r) return;
 
   if (r.coverUrl) {
+    el('detailCoverWrap').classList.add('img-loading');
+    el('detailCover').onload = () => el('detailCoverWrap').classList.remove('img-loading');
+    el('detailCover').onerror = () => {
+      el('detailCoverWrap').classList.remove('img-loading');
+      el('detailCover').style.display = 'none';
+      el('detailCoverFallback').style.display = 'flex';
+      el('detailCoverFallback').innerHTML = `<i class="ti ${iconForGenre(r.genre)}"></i>`;
+    };
     el('detailCover').src = r.coverUrl;
     el('detailCover').style.display = 'block';
     el('detailCoverFallback').style.display = 'none';
   } else {
+    el('detailCoverWrap').classList.remove('img-loading');
     el('detailCover').style.display = 'none';
     el('detailCoverFallback').style.display = 'flex';
     el('detailCoverFallback').innerHTML = `<i class="ti ${iconForGenre(r.genre)}"></i>`;
@@ -813,6 +941,54 @@ function openRandomRecord() {
   const r = records[Math.floor(Math.random() * records.length)];
   openDetailModal(r.id);
 }
+
+// ---- Small shared utilities ----
+function debounce(fn, ms) {
+  let t;
+  return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
+}
+
+// Wires a text input + its clear (×) button: shows/hides the button based on
+// whether there's a value, and clearing it re-runs the given callback right
+// away (not debounced — clearing should feel instant).
+function wireSearchClear(inputId, clearBtnId, onChange) {
+  const input = el(inputId), btn = el(clearBtnId);
+  if (!input || !btn) return;
+  const sync = () => { btn.style.display = input.value ? 'flex' : 'none'; };
+  input.addEventListener('input', sync);
+  btn.addEventListener('click', () => { input.value = ''; sync(); input.focus(); onChange(); });
+  sync();
+}
+
+el('exportBtn').addEventListener('click', () => {
+  if (!records.length) { alert('Your collection is empty — nothing to export yet.'); return; }
+  const columns = [
+    ['album', 'Album'], ['artist', 'Artist'], ['year', 'Year'], ['genre', 'Genre'],
+    ['format', 'Format'], ['condition', 'Condition'], ['price', 'Price Paid'],
+    ['estimatedValue', 'Estimated Value'], ['purchaseDate', 'Purchase Date'],
+    ['label', 'Label'], ['catalogNumber', 'Catalog Number'], ['country', 'Country'],
+    ['releaseType', 'Release Type'], ['coverUrl', 'Cover URL'], ['notes', 'Notes'],
+    ['tracklist', 'Track Listing']
+  ];
+  const escapeCsv = v => {
+    const s = v === null || v === undefined ? '' : String(v);
+    return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  };
+  const header = columns.map(([, label]) => escapeCsv(label)).join(',');
+  const rows = records.map(r => columns.map(([key]) =>
+    escapeCsv(key === 'tracklist' ? (r.tracklist || '').replace(/\n/g, ' / ') : r[key])
+  ).join(','));
+  const csv = [header, ...rows].join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `the-stacks-export-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+});
 
 function armLazyImageTimeouts(container, ms = 8000) {
   // A slow/hung image request (as opposed to a hard failure) never fires

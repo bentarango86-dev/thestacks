@@ -28,6 +28,7 @@
       <span id="userEmail" style="font-family:'IBM Plex Mono',monospace; font-size:11px; color:rgba(12,35,64,0.55);"></span>
       <button class="btn btn-ghost" id="helpBtn" style="display:none;"><i class="ti ti-help-circle" style="font-size:15px; vertical-align:-2px; margin-right:3px;"></i>Help</button>
       <button class="btn btn-ghost" id="securityBtn" style="display:none;"><i class="ti ti-shield-lock" style="font-size:15px; vertical-align:-2px; margin-right:3px;"></i>Security</button>
+      <button class="btn btn-ghost" id="exportBtn" style="display:none;"><i class="ti ti-download" style="font-size:15px; vertical-align:-2px; margin-right:3px;"></i>Export CSV</button>
       <button class="btn btn-ghost" id="signOutBtn" style="display:none;">Sign out</button>
     </div>
   </header>
@@ -42,7 +43,10 @@
   </div>
 
   <div class="controls">
-    <input type="text" id="search" name="stacks-record-search" placeholder="Search artist, album, or genre…" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false">
+    <div class="search-input-wrap">
+      <input type="text" id="search" name="stacks-record-search" placeholder="Search artist, album, or genre…" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false">
+      <button type="button" class="search-clear-btn" id="searchClear" title="Clear search"><i class="ti ti-x"></i></button>
+    </div>
     <select id="filterGenre"><option value="">All genres</option></select>
     <select id="filterYear"><option value="">All years</option></select>
     <select id="filterFormat"><option value="">All formats</option></select>
@@ -50,6 +54,11 @@
     <select id="filterCountry"><option value="">All countries</option></select>
     <select id="filterLabel"><option value="">All labels</option></select>
     <button class="btn btn-primary" id="addBtn">+ Add Record</button>
+  </div>
+
+  <div class="loading-state" id="loadingState">
+    <div class="loading-spinner"></div>
+    <span>Loading your collection…</span>
   </div>
 
   <div class="crate" id="crate"></div>
@@ -153,7 +162,9 @@ function renderFlatCrate() {
   });
 
   if (list.length === 0) {
-    crate.innerHTML = `<div class="empty-state">${records.length === 0 ? 'The crate is empty. Add your first record.' : 'No records match.'}</div>`;
+    crate.innerHTML = records.length === 0
+      ? `<button type="button" class="empty-state-cta" onclick="openModal(null)"><i class="ti ti-plus"></i>The crate is empty — add your first record</button>`
+      : `<div class="empty-state">No records match.</div>`;
     return;
   }
 
@@ -179,7 +190,7 @@ function renderFlatCrate() {
           return `
           <tr>
             <td style="cursor:pointer;" onclick='openDetailModal("${r.id}")'>${r.coverUrl
-              ? `<img class="thumb" src="${escapeAttr(r.coverUrl)}" alt="" loading="lazy" onerror="this.outerHTML='<div class=&quot;thumb-fallback&quot;><i class=&quot;ti ti-music&quot;></i></div>'">`
+              ? `<img class="thumb img-loading" src="${escapeAttr(r.coverUrl)}" alt="" loading="lazy" onload="this.classList.remove('img-loading')" onerror="this.outerHTML='<div class=&quot;thumb-fallback&quot;><i class=&quot;ti ti-music&quot;></i></div>'">`
               : `<div class="thumb-fallback"><i class="ti ti-music"></i></div>`}</td>
             <td class="cell-album" style="cursor:pointer;" onclick='openDetailModal("${r.id}")'>${escapeHtml(r.album)}</td>
             <td class="cell-artist">${escapeHtml(r.artist)}</td>
@@ -225,7 +236,8 @@ function renderPage() {
   renderFlatCrate();
 }
 
-el('search').addEventListener('input', renderFlatCrate);
+el('search').addEventListener('input', debounce(renderFlatCrate, 150));
+wireSearchClear('search', 'searchClear', renderFlatCrate);
 el('filterGenre').addEventListener('change', renderFlatCrate);
 el('filterYear').addEventListener('change', renderFlatCrate);
 el('filterFormat').addEventListener('change', renderFlatCrate);

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'the-stacks-v35';
+const CACHE_NAME = 'the-stacks-v36';
 const APP_SHELL = [
   './',
   './index.html',

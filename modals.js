@@ -127,7 +127,7 @@ document.getElementById('modals-root').innerHTML = `
 
     <h3>Security</h3>
     <p>Tap <strong><i class="ti ti-shield-lock" style="font-size:15px; vertical-align:-2px; margin-right:3px;"></i>Security</strong> to turn on two-factor authentication. Scan the QR code with an authenticator app, confirm with the 6-digit code, and you'll need it plus your password at every sign-in from then on.</p>
-    <p><strong>There's no recovery code.</strong> Losing your authenticator app means losing access — keep the setup QR/key somewhere safe if you enable this.</p>
+    <p><strong>There's no recovery code.</strong> Losing your authenticator app means losing access — keep the setup QR/key somewhere safe if you enable this. Tap <strong><i class="ti ti-download" style="font-size:15px; vertical-align:-2px; margin-right:3px;"></i>Export CSV</strong> now and then to keep a backup of your collection outside the app.</p>
 
     <h3>A few notes</h3>
     <ul>
