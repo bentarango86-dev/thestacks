@@ -164,137 +164,6 @@
     display: block;
   }
 
-  .drill-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 16px;
-  }
-  @media (max-width: 640px) {
-    .drill-grid { grid-template-columns: 1fr; }
-  }
-
-  /* ---------- STACKS (genre piles) ---------- */
-  .stacks-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
-    gap: 34px 22px;
-  }
-
-  .stack-tile {
-    cursor: pointer;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    background: none;
-    border: none;
-    padding: 0;
-    font-family: inherit;
-    color: inherit;
-    transition: transform 0.15s ease, opacity 0.15s ease;
-  }
-  /* A quick "pulled off the shelf" press before the page navigates —
-     brief and physical rather than a static click. */
-  .stack-tile.pulling { transform: scale(0.93); opacity: 0.6; }
-
-  .stack-visual {
-    position: relative;
-    width: 100%;
-    aspect-ratio: 1 / 1;
-    margin-bottom: 16px;
-    /* Deterministic per-genre tilt (set inline via --jitter) so the shelf reads
-       as records actually dropped into place, not a uniform grid of tiles. */
-    transform: rotate(var(--jitter, 0deg));
-    transition: transform 0.25s ease;
-  }
-  .stack-tile:hover .stack-visual { transform: rotate(var(--jitter, 0deg)) translateY(-2px); }
-
-  /* A sliver of vinyl peeking from behind the sleeve — the tell that this
-     is a record, not just cover art in a square. */
-  .stack-visual::after {
-    content: '';
-    position: absolute;
-    right: -6px;
-    bottom: 10px;
-    width: 15px;
-    height: 15px;
-    border-radius: 50%;
-    background:
-      radial-gradient(circle at center, var(--amber) 0 2px, #0a0a0a 2px 3px, #060606 3px 100%);
-    box-shadow: 0 2px 5px rgba(0,0,0,0.4);
-    z-index: 1;
-    opacity: 0.9;
-  }
-
-  .stack-sleeve {
-    position: absolute;
-    inset: 0;
-    border-radius: 6px;
-    background: var(--paper-dim);
-    box-shadow: 0 4px 10px rgba(12,35,64,0.2);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-    overflow: hidden;
-  }
-  .stack-sleeve img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .stack-sleeve.s4 { transform: translate(13px, -11px) rotate(10deg); background: #c9b98f; z-index: 0; }
-  .stack-sleeve.s4 img { filter: brightness(0.85) saturate(0.85); }
-  .stack-sleeve.s3 { transform: translate(9px, -9px) rotate(6deg); background: #d8c39a; z-index: 1; }
-  .stack-sleeve.s3 img { filter: brightness(0.9) saturate(0.9); }
-  .stack-sleeve.s2 { transform: translate(5px, -5px) rotate(3deg); background: var(--paper-dim); z-index: 2; }
-  .stack-sleeve.s2 img { filter: brightness(0.95); }
-  .stack-badge {
-    position: absolute;
-    top: -10px; right: -10px;
-    min-width: 26px; height: 26px;
-    padding: 0 6px;
-    border-radius: 13px;
-    background: var(--amber);
-    color: var(--vinyl);
-    font-family: 'IBM Plex Mono', monospace;
-    font-weight: 700;
-    font-size: 12px;
-    display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 2px 6px rgba(12,35,64,0.35);
-    z-index: 4;
-  }
-  .stack-sleeve.face-sleeve {
-    z-index: 3;
-    background: var(--navy);
-    overflow: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .stack-tile:hover .s4 { transform: translate(17px, -15px) rotate(13deg); }
-  .stack-tile:hover .s3 { transform: translate(13px, -13px) rotate(9deg); }
-  .stack-tile:hover .s2 { transform: translate(7px, -7px) rotate(4deg); }
-  .stack-tile:hover .face-sleeve { transform: translate(0,-3px); box-shadow: 0 10px 20px rgba(12,35,64,0.3); }
-
-  .face-sleeve img { width: 100%; height: 100%; object-fit: cover; }
-  .face-sleeve .face-fallback {
-    font-size: 26px;
-    color: var(--amber);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .stack-label { text-align: center; }
-  .stack-label h3 {
-    font-family: 'Fraunces', serif;
-    font-weight: 700;
-    font-size: 15.5px;
-    color: var(--ink);
-    letter-spacing: -0.01em;
-  }
-  .stack-label .stack-count {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 10.5px;
-    color: var(--amber-dim);
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    margin-top: 1px;
-  }
-
   /* ---------- LOADING STATE ---------- */
   .loading-state {
     display: none;
@@ -322,12 +191,12 @@
     100% { background-position: 150% 0; }
   }
   /* Specificity matched/beaten against each consumer's own `background`
-     shorthand (.gallery-cover-wrap, .stack-sleeve.face-sleeve,
-     .detail-modal-cover-wrap all set background: var(--navy) elsewhere —
-     a plain .img-loading rule would lose that cascade fight). */
+     shorthand (.gallery-cover-wrap, .detail-modal-cover-wrap both set
+     background: var(--navy) elsewhere — a plain .img-loading rule would
+     lose that cascade fight; .shelf-cover shares .gallery-cover-wrap's base
+     so it's covered by that selector too). */
   .img-loading,
   .gallery-cover-wrap.img-loading,
-  .stack-sleeve.face-sleeve.img-loading,
   .detail-modal-cover-wrap.img-loading {
     background-image: linear-gradient(100deg, var(--paper-dim) 30%, #fff8ec 50%, var(--paper-dim) 70%);
     background-size: 250% 100%;
@@ -364,6 +233,99 @@
     font-size: 11px;
     box-shadow: 0 2px 6px rgba(12,35,64,0.35);
     z-index: 2;
+  }
+
+  /* ---------- SHELVES (Stacks homepage — browse in place, no page changes) ----------
+     Bare covers: no permanent text, no counts on the artwork. Hover/tap reveals
+     album, artist, and the three actions. Everything sits on a physical ledge. */
+  .shelf { margin-bottom: 34px; }
+  .shelf-label {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 12px;
+    scroll-margin-top: 90px; /* so scrollIntoView (Continue Browsing) clears the sticky-ish header */
+  }
+  .shelf-label h3 {
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-size: 17px;
+    color: var(--ink);
+  }
+  .shelf-count {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10.5px;
+    color: #8a7d63;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .shelf-row {
+    display: flex;
+    gap: 14px;
+    overflow-x: auto;
+    padding-bottom: 6px;
+    scroll-snap-type: x proximity;
+  }
+  .shelf-row::-webkit-scrollbar { height: 6px; }
+  .shelf-ledge {
+    height: 9px;
+    margin-top: 12px;
+    border-radius: 2px;
+    background: linear-gradient(180deg, var(--navy-dim) 0%, var(--navy) 100%);
+    box-shadow: 0 3px 8px rgba(12,35,64,0.3), inset 0 1px 0 rgba(255,255,255,0.08);
+  }
+  /* A brief highlight when "Continue Browsing" scrolls a shelf into view. */
+  @keyframes shelfHighlight {
+    0%, 100% { box-shadow: none; }
+    30% { box-shadow: 0 0 0 3px var(--amber); }
+  }
+  .shelf-label.flash h3 { animation: shelfHighlight 1s ease; border-radius: 3px; }
+
+  .shelf-cover {
+    flex: 0 0 auto;
+    width: 128px;
+    aspect-ratio: 1 / 1;
+    scroll-snap-align: start;
+  }
+  .shelf-cover-overlay {
+    position: absolute; inset: 0;
+    background: linear-gradient(180deg, rgba(12,35,64,0) 35%, rgba(12,35,64,0.94) 100%);
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 10px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+  .gallery-cover-wrap:hover .shelf-cover-overlay,
+  .gallery-cover-wrap.revealed .shelf-cover-overlay { opacity: 1; }
+  .shelf-cover-text { margin-bottom: 8px; }
+  .shelf-cover-album {
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-size: 12.5px;
+    color: var(--vinyl);
+    line-height: 1.25;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .shelf-cover-artist {
+    font-size: 10.5px;
+    color: rgba(242,232,211,0.75);
+    margin-top: 1px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .shelf-cover-actions { display: flex; justify-content: flex-end; gap: 4px; }
+  .shelf-cover-actions button {
+    background: rgba(255,255,255,0.14); border: none; color: var(--vinyl);
+    width: 26px; height: 26px; border-radius: 5px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; font-size: 12px;
+    transition: background 0.15s ease;
+  }
+  .shelf-cover-actions button:hover { background: rgba(255,255,255,0.3); }
+  .shelf-cover-actions button.star.active { color: var(--amber); background: rgba(255,255,255,0.3); }
+
+  @media (max-width: 560px) {
+    .shelf-cover { width: 104px; }
   }
 
   /* ---------- HOME SEARCH (primary nav) ---------- */
@@ -528,80 +490,6 @@
     to { opacity: 1; transform: scale(1) translateY(0); }
   }
   .overlay.open .modal { animation: modalPop 0.18s ease-out; }
-
-  /* ---------- COLLECTOR CARD ---------- */
-  .collector-card {
-    background: var(--paper);
-    color: var(--ink);
-    border-radius: 6px;
-    padding: 14px;
-    box-shadow: 0 4px 12px rgba(12,35,64,0.12);
-    transition: box-shadow 0.15s ease;
-  }
-  .collector-card:hover { box-shadow: 0 8px 20px rgba(12,35,64,0.2); }
-
-  .collector-top { display: flex; gap: 14px; }
-  .collector-cover, .collector-cover-fallback {
-    width: 120px; height: 120px; border-radius: 5px; flex-shrink: 0;
-  }
-  .collector-cover { object-fit: cover; display: block; }
-  .collector-cover-fallback {
-    background: var(--navy);
-    display: flex; align-items: center; justify-content: center;
-  }
-  .collector-cover-fallback i { font-size: 34px; color: var(--amber); }
-
-  .collector-info { min-width: 0; display: flex; flex-direction: column; flex: 1; }
-  .collector-title-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
-  .collector-title {
-    font-family: 'Fraunces', serif;
-    font-weight: 700;
-    font-size: 16.5px;
-    line-height: 1.2;
-    margin-bottom: 2px;
-  }
-  .collector-artist { font-size: 13px; color: #55503f; }
-
-  .collector-metaline {
-    font-size: 12.5px;
-    color: #6b5f4d;
-    margin-top: 4px;
-  }
-
-  .collector-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-  .collector-chip { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 4px; }
-  .collector-chip.condition { background: var(--amber); color: var(--vinyl); }
-
-  .icon-row { display: flex; gap: 2px; flex-shrink: 0; }
-  .icon-row button {
-    background: none; border: none; color: #8a7d63; cursor: pointer;
-    font-size: 14px; padding: 4px 5px; border-radius: 4px;
-  }
-  .icon-row button:hover { background: rgba(12,35,64,0.07); color: var(--ink); }
-  .icon-row button.danger:hover { color: var(--rust); }
-  .icon-row button.star.active { color: var(--amber); }
-
-  .collector-actions {
-    display: flex; align-items: center; justify-content: space-between; gap: 10px;
-    margin-top: 12px; padding-top: 10px; border-top: 1px solid #eee0c8;
-    font-size: 12.5px; color: #4a4030; font-weight: 600;
-  }
-
-  .collector-details-toggle {
-    background: none; border: none; color: var(--amber); font-size: 12.5px; font-weight: 700;
-    cursor: pointer; padding: 0; display: flex; align-items: center; gap: 4px; white-space: nowrap;
-  }
-  .collector-details-toggle i { transition: transform 0.15s ease; font-size: 13px; }
-  .collector-details-toggle.open i { transform: rotate(180deg); }
-
-  .collector-tracklist {
-    display: none;
-    margin-top: 12px; padding-top: 12px;
-    border-top: 1px dashed #d8c6a0;
-    font-size: 12.5px; color: #4a4030; line-height: 1.7;
-    max-height: 240px; overflow-y: auto;
-  }
-  .collector-tracklist.open { display: block; }
 
   .empty-state {
     grid-column: 1 / -1;

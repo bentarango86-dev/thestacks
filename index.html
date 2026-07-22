@@ -61,18 +61,6 @@
     </select>
   </div>
 
-  <div class="controls" id="drillControls" style="display:none;">
-    <a href="index.html" class="btn btn-ghost"><i class="ti ti-arrow-left" style="vertical-align:-2px; margin-right:3px;"></i>All Genres</a>
-    <select id="drillSortBy">
-      <option value="added-desc">Recently added</option>
-      <option value="artist-asc">Artist A–Z</option>
-      <option value="year-desc">Year (newest)</option>
-      <option value="year-asc">Year (oldest)</option>
-      <option value="value-desc">Value (high–low)</option>
-    </select>
-    <button class="btn btn-primary" id="addBtnDrill" style="margin-left:auto;">+ Add Record</button>
-  </div>
-
   <div class="loading-state" id="loadingState">
     <div class="loading-spinner"></div>
     <span>Loading your collection…</span>
@@ -83,14 +71,13 @@
     <div class="gallery-grid" id="searchResultsGrid"></div>
   </div>
 
-  <div id="recentlyAddedSection" style="margin-bottom:28px;">
-    <h2 class="section-heading">Recently Added</h2>
-    <div id="recentlyAddedRow" style="display:flex; gap:14px; overflow-x:auto; padding-bottom:4px;"></div>
+  <div class="shelf" id="recentlyAddedShelf">
+    <div class="shelf-label"><h3>Recently Added</h3></div>
+    <div class="shelf-row" id="recentlyAddedRow"></div>
+    <div class="shelf-ledge"></div>
   </div>
 
-  <div class="stacks-grid" id="stacksGrid"></div>
-  <h2 id="drillHeading" style="display:none; font-family:'Fraunces',serif; font-weight:700; font-size:22px; color:var(--ink); margin-bottom:16px;"></h2>
-  <div class="gallery-grid" id="drillCards" style="display:none;"></div>
+  <div id="shelvesContainer"></div>
   </div>
 </div>
 
@@ -100,70 +87,37 @@
 <script src="app.js"></script>
 <script>
 // ---- STACKS PAGE ----
-// (iconForGenre, renderGalleryGrid, handleGalleryTap, openDetailModal live in app.js — shared with records.html)
-
-// Drilling into a stack stays on this page (index.html?genre=X) rather than
-// jumping to the All Records table — it's part of the Stacks browsing
-// experience, not the spreadsheet view. Remember it so "Continue Browsing"
-// can bring the person right back next visit.
-function exploreGenre(genre, tileEl) {
-  saveLastGenre(genre);
-  const go = () => { window.location.href = 'index.html?genre=' + encodeURIComponent(genre); };
-  if (tileEl) {
-    tileEl.classList.add('pulling');
-    setTimeout(go, 140);
-  } else {
-    go();
-  }
-}
-
-// Small deterministic tilt per genre name so the shelf reads as records
-// actually dropped into place rather than a uniform grid of tiles.
-function jitterForGenre(genre) {
-  const s = genre || '';
-  let hash = 0;
-  for (let i = 0; i < s.length; i++) hash = (hash * 31 + s.charCodeAt(i)) | 0;
-  return (Math.abs(hash) % 7) - 3; // -3..3 degrees
-}
+// (iconForGenre, buildShelfRow/buildShelfCover, openDetailModal live in app.js — shared with records.html)
+// Everything renders in place now — no drill page, no navigation away from
+// this screen just to look inside a genre.
 
 function saveLastGenre(genre) {
+  if (genre === 'recentlyAdded') return; // not a real shelf — nothing to "continue browsing" to
   try { localStorage.setItem('stacks:lastGenre', genre); } catch (e) { /* non-fatal */ }
 }
 function loadLastGenre() {
   try { return localStorage.getItem('stacks:lastGenre'); } catch (e) { return null; }
 }
 
-const urlParams = new URLSearchParams(window.location.search);
-const drillGenre = urlParams.get('genre');
-
-// ---- Sort persistence (survives reloads and navigation) ----
+// ---- Sort persistence (survives reloads) ----
 function loadSavedSort(key, fallback) {
-  try {
-    const saved = localStorage.getItem(key);
-    return saved || fallback;
-  } catch (e) { return fallback; }
+  try { return localStorage.getItem(key) || fallback; } catch (e) { return fallback; }
 }
 function saveSort(key, value) {
   try { localStorage.setItem(key, value); } catch (e) { /* private browsing etc — non-fatal */ }
 }
 
 el('stackSortBy').value = loadSavedSort('stacks:stackSort', 'genre-asc');
-el('drillSortBy').value = loadSavedSort('stacks:drillSort', 'artist-asc');
-
 el('stackSortBy').addEventListener('change', () => {
   saveSort('stacks:stackSort', el('stackSortBy').value);
-  renderStacksGrid();
+  renderShelves();
 });
-el('drillSortBy').addEventListener('change', () => {
-  saveSort('stacks:drillSort', el('drillSortBy').value);
-  renderDrillCards();
-});
-el('addBtnDrill').addEventListener('click', () => openModal(null));
 
-function renderStacksGrid() {
+function renderShelves() {
+  const container = el('shelvesContainer');
   if (records.length === 0) {
-    el('stacksGrid').innerHTML = `
-      <button type="button" class="empty-state-cta" style="grid-column:1/-1;" onclick="openModal(null)">
+    container.innerHTML = `
+      <button type="button" class="empty-state-cta" onclick="openModal(null)">
         <i class="ti ti-plus"></i>
         The crate is empty — add your first record
       </button>`;
@@ -187,92 +141,36 @@ function renderStacksGrid() {
     }
   });
 
-  el('stacksGrid').innerHTML = entries.map(([genre, list]) => {
-    // Respect an explicit star, but otherwise prefer any record that
-    // actually has cover art over just taking whichever came first —
-    // a genre shouldn't show a blank tile when art exists in the group.
-    const face = list.find(r => r.isFace) || list.find(r => r.coverUrl) || list[0];
+  container.innerHTML = entries.map(([genre, list]) => {
     const label = genre === '__none__' ? 'No genre' : genre;
-    const fallbackHtml = `<div class="face-fallback"><i class="ti ${iconForGenre(genre)}"></i></div>`;
-    const faceInner = face.coverUrl
-      ? `<img src="${escapeAttr(face.coverUrl)}" alt="" loading="lazy" onload="this.parentElement.classList.remove('img-loading')" onerror="this.parentElement.classList.remove('img-loading'); this.parentElement.innerHTML='${fallbackHtml.replace(/"/g, '&quot;').replace(/'/g, "\\'")}'">`
-      : fallbackHtml;
-
-    // Pick real records for the back layers, preferring ones with cover art
-    // so the stack reflects what's actually in the genre, not filler.
-    // Layer count scales with how many records are actually in the genre —
-    // bigger piles look bigger, capped at 3 back layers so it never gets messy.
-    const layerCount = list.length >= 50 ? 3 : list.length >= 10 ? 2 : list.length >= 3 ? 1 : 0;
-    const others = list.filter(r => r.id !== face.id);
-    const withArt = others.filter(r => r.coverUrl);
-    const withoutArt = others.filter(r => !r.coverUrl);
-    const backLayers = [...withArt, ...withoutArt].slice(0, layerCount);
-
-    const sleeveInner = r => r && r.coverUrl
-      ? `<img src="${escapeAttr(r.coverUrl)}" alt="" loading="lazy" onerror="this.parentElement.innerHTML=''">`
-      : '';
-
-    const badge = list.length > 9
-      ? `<div class="stack-badge">${list.length > 99 ? '99+' : list.length}</div>`
-      : '';
-
     return `
-      <div class="stack-tile" onclick='exploreGenre(${JSON.stringify(genre)}, this)'>
-        <div class="stack-visual" style="--jitter:${jitterForGenre(genre)}deg;">
-          ${backLayers[2] ? `<div class="stack-sleeve s4">${sleeveInner(backLayers[2])}</div>` : ''}
-          ${backLayers[1] ? `<div class="stack-sleeve s3">${sleeveInner(backLayers[1])}</div>` : ''}
-          ${backLayers[0] ? `<div class="stack-sleeve s2">${sleeveInner(backLayers[0])}</div>` : ''}
-          <div class="stack-sleeve face-sleeve${face.coverUrl ? ' img-loading' : ''}">${faceInner}</div>
-          ${badge}
-        </div>
-        <div class="stack-label">
+      <section class="shelf">
+        <div class="shelf-label" id="shelfLabel-${escapeAttr(genre)}">
           <h3>${escapeHtml(label)}</h3>
-          <div class="stack-count">${list.length} record${list.length === 1 ? '' : 's'}</div>
+          <span class="shelf-count">${list.length} record${list.length === 1 ? '' : 's'}</span>
         </div>
-      </div>
+        <div class="shelf-row" id="shelfRow-${escapeAttr(genre)}"></div>
+        <div class="shelf-ledge"></div>
+      </section>
     `;
   }).join('');
 
-  armLazyImageTimeouts(el('stacksGrid'));
-}
-
-function renderDrillCards() {
-  const list = records.filter(r => drillGenre === '__none__' ? !r.genre : r.genre === drillGenre);
-  const label = drillGenre === '__none__' ? 'No genre' : drillGenre;
-  el('drillHeading').textContent = `${label} — ${list.length} record${list.length === 1 ? '' : 's'}`;
-
-  const sortBy = el('drillSortBy').value;
-  list.sort((a, b) => {
-    switch (sortBy) {
-      case 'artist-asc': return a.artist.localeCompare(b.artist);
-      case 'year-desc': return (parseInt(b.year)||0) - (parseInt(a.year)||0);
-      case 'year-asc': return (parseInt(a.year)||0) - (parseInt(b.year)||0);
-      case 'value-desc': return (b.price||0) - (a.price||0);
-      default: return (b.addedAt||0) - (a.addedAt||0);
-    }
+  // Newest records toward the front of each shelf — flipping through feels
+  // like the crate itself, not an alphabetized catalog.
+  entries.forEach(([genre, list]) => {
+    const sorted = [...list].sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0));
+    buildShelfRow(document.getElementById('shelfRow-' + genre), sorted, genre);
   });
-
-  renderGalleryGrid(el('drillCards'), list);
 }
 
 function renderRecentlyAdded() {
-  const recent = [...records].sort((a, b) => (b.addedAt||0) - (a.addedAt||0)).slice(0, 8);
+  const recent = [...records].sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0)).slice(0, 10);
   if (recent.length === 0) {
-    el('recentlyAddedSection').style.display = 'none';
+    el('recentlyAddedShelf').style.display = 'none';
     return;
   }
-  el('recentlyAddedRow').innerHTML = recent.map(r => {
-    const cover = r.coverUrl
-      ? `<img src="${escapeAttr(r.coverUrl)}" alt="" loading="lazy" style="width:84px; height:84px; object-fit:cover; border-radius:5px;" onerror="this.outerHTML='<div style=&quot;width:84px;height:84px;border-radius:5px;background:var(--navy);display:flex;align-items:center;justify-content:center;&quot;><i class=&quot;ti ${iconForGenre(r.genre)}&quot; style=&quot;color:var(--amber);font-size:24px;&quot;></i></div>'">`
-      : `<div style="width:84px; height:84px; border-radius:5px; background:var(--navy); display:flex; align-items:center; justify-content:center;"><i class="ti ${iconForGenre(r.genre)}" style="color:var(--amber); font-size:24px;"></i></div>`;
-    return `
-      <div style="flex-shrink:0; width:84px; cursor:pointer;" onclick='editRecord("${r.id}")'>
-        ${cover}
-        <div style="font-size:11.5px; font-weight:700; color:var(--ink); margin-top:6px; line-height:1.25; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(r.album)}</div>
-        <div style="font-size:10.5px; color:#8a7d63; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(r.artist)}</div>
-      </div>
-    `;
-  }).join('');
+  el('recentlyAddedShelf').style.display = 'block';
+  buildShelfRow(el('recentlyAddedRow'), recent, 'recentlyAdded');
 }
 
 // ---- SEARCH (primary navigation on the homepage) ----
@@ -280,13 +178,13 @@ function renderSearchResults() {
   const q = el('homeSearch').value.trim().toLowerCase();
   if (!q) {
     el('searchResultsSection').style.display = 'none';
-    el('recentlyAddedSection').style.display = 'block';
-    el('stacksGrid').style.display = 'grid';
+    el('recentlyAddedShelf').style.display = records.length ? 'block' : 'none';
+    el('shelvesContainer').style.display = 'block';
     return true; // no query — caller should render the normal homepage
   }
   const matches = records.filter(r => recordMatchesQuery(r, q));
-  el('recentlyAddedSection').style.display = 'none';
-  el('stacksGrid').style.display = 'none';
+  el('recentlyAddedShelf').style.display = 'none';
+  el('shelvesContainer').style.display = 'none';
   el('searchResultsSection').style.display = 'block';
   el('searchResultsHeading').innerHTML = `
     ${matches.length} result${matches.length === 1 ? '' : 's'}
@@ -295,46 +193,39 @@ function renderSearchResults() {
   renderGalleryGrid(el('searchResultsGrid'), matches);
   return false;
 }
-el('homeSearch').addEventListener('input', debounce(() => {
-  if (drillGenre) return; // search only drives the top-level homepage view
-  if (renderSearchResults()) renderStacksGrid();
-}, 150));
-wireSearchClear('homeSearch', 'homeSearchClear', () => {
-  if (renderSearchResults()) renderStacksGrid();
-});
+el('homeSearch').addEventListener('input', debounce(() => { renderSearchResults(); }, 150));
+wireSearchClear('homeSearch', 'homeSearchClear', renderSearchResults);
 
 el('randomBtn').addEventListener('click', openRandomRecord);
 
+el('continueBtn').addEventListener('click', e => {
+  e.preventDefault();
+  const genre = el('continueBtn').dataset.genre;
+  const label = el('shelfLabel-' + genre);
+  if (!label) return;
+  label.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  label.classList.remove('flash');
+  void label.offsetWidth; // restart the animation if it's already been triggered once
+  label.classList.add('flash');
+});
+
 function renderPage() {
   renderStats();
-  if (drillGenre) {
-    el('homeSearchRow').style.display = 'none';
-    el('stacksControls').style.display = 'none';
-    el('drillControls').style.display = 'flex';
-    el('stacksGrid').style.display = 'none';
-    el('recentlyAddedSection').style.display = 'none';
-    el('searchResultsSection').style.display = 'none';
-    el('drillHeading').style.display = 'block';
-    el('drillCards').style.display = 'grid';
-    renderDrillCards();
+  el('homeSearch').placeholder = `Search within your ${records.length} record${records.length === 1 ? '' : 's'}`;
+
+  const lastGenre = loadLastGenre();
+  const lastGenreStillExists = lastGenre && records.some(r => (r.genre || '') === lastGenre || (lastGenre === '__none__' && !r.genre));
+  if (lastGenreStillExists) {
+    el('continueLabel').textContent = `Continue browsing ${lastGenre === '__none__' ? 'No genre' : lastGenre}`;
+    el('continueBtn').dataset.genre = lastGenre;
+    el('continueBtn').style.display = 'inline-flex';
   } else {
-    el('homeSearchRow').style.display = 'block';
-    el('homeSearch').placeholder = `Search within your ${records.length} record${records.length === 1 ? '' : 's'}`;
+    el('continueBtn').style.display = 'none';
+  }
 
-    const lastGenre = loadLastGenre();
-    const lastGenreStillExists = lastGenre && records.some(r => (r.genre || '') === lastGenre || (lastGenre === '__none__' && !r.genre));
-    if (lastGenreStillExists) {
-      el('continueLabel').textContent = `Continue browsing ${lastGenre === '__none__' ? 'No genre' : lastGenre}`;
-      el('continueBtn').href = 'index.html?genre=' + encodeURIComponent(lastGenre);
-      el('continueBtn').style.display = 'inline-flex';
-    } else {
-      el('continueBtn').style.display = 'none';
-    }
-
-    if (renderSearchResults()) {
-      renderRecentlyAdded();
-      renderStacksGrid();
-    }
+  if (renderSearchResults()) {
+    renderRecentlyAdded();
+    renderShelves();
   }
 }
 </script>

@@ -884,6 +884,48 @@ function handleGalleryTap(wrap, id) {
   }
 }
 
+// ---- SHELF COVER (Stacks homepage — bare art, nothing shown until hover/tap) ----
+// Several shelves are visible at once, so each cover needs to point Prev/Next
+// at its OWN shelf's list, not whichever shelf happened to render last —
+// shelfListRegistry + setShelfContext resolve that at click time.
+let shelfListRegistry = {};
+function setShelfContext(key) {
+  lastListContext = shelfListRegistry[key] || [];
+  // Soft hook: only the Stacks page defines saveLastGenre (for "Continue
+  // Browsing"). Records.html never builds shelves, so this never fires there.
+  if (typeof saveLastGenre === 'function') saveLastGenre(key);
+}
+
+function buildShelfCover(r, listKey) {
+  const coverHtml = r.coverUrl
+    ? `<img src="${escapeAttr(r.coverUrl)}" alt="" loading="lazy" onload="this.parentElement.classList.remove('img-loading')" onerror="this.parentElement.classList.remove('img-loading'); this.outerHTML='<div class=&quot;gallery-cover-fallback&quot;><i class=&quot;ti ${iconForGenre(r.genre)}&quot;></i></div>'">`
+    : `<div class="gallery-cover-fallback"><i class="ti ${iconForGenre(r.genre)}"></i></div>`;
+  const key = escapeAttr(JSON.stringify(listKey));
+  return `
+    <div class="gallery-cover-wrap shelf-cover${r.coverUrl ? ' img-loading' : ''}" onclick='setShelfContext(${key}); handleGalleryTap(this, "${r.id}")'>
+      ${coverHtml}
+      <div class="shelf-cover-overlay">
+        <div class="shelf-cover-text">
+          <div class="shelf-cover-album">${escapeHtml(r.album)}</div>
+          <div class="shelf-cover-artist">${escapeHtml(r.artist)}</div>
+        </div>
+        <div class="shelf-cover-actions">
+          <button onclick='event.stopPropagation(); setShelfContext(${key}); openDetailModal("${r.id}")' title="View"><i class="ti ti-eye"></i></button>
+          <button onclick='event.stopPropagation(); setShelfContext(${key}); editRecord("${r.id}")' title="Edit"><i class="ti ti-pencil"></i></button>
+          <button class="star ${r.isFace ? 'active' : ''}" onclick='event.stopPropagation(); setShelfContext(${key}); toggleFace("${r.id}")' title="Favorite"><i class="ti ti-star"></i></button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function buildShelfRow(container, list, listKey) {
+  if (!container) return;
+  shelfListRegistry[listKey] = list;
+  container.innerHTML = list.map(r => buildShelfCover(r, listKey)).join('');
+  armLazyImageTimeouts(container);
+}
+
 // ---- ALBUM DETAIL MODAL ("opening the record jacket") ----
 function openDetailModal(id) {
   // Flip through whichever list this was opened from (the grid or table the
