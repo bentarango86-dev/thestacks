@@ -10,7 +10,6 @@
     --amber-dim: #7a2027;
     --navy: #0c2340;
     --navy-dim: #1c3a5e;
-    --navy-pale: #3f5e86;
     --rust: #b8342a;
     --olive: #6b5220;
     --line: rgba(12,35,64,0.16);
@@ -584,9 +583,8 @@
     justify-content: center;
     background-color: var(--navy);
   }
-  .detail-modal-cover-wrap.has-cover { background-color: var(--navy-pale); }
   .detail-modal-cover-wrap img {
-    width: 100%; height: 100%; object-fit: contain; display: block;
+    width: 100%; height: 100%; object-fit: cover; display: block;
   }
   .detail-modal-cover-wrap .gallery-cover-fallback { width: 100%; height: 100%; }
   .detail-modal-cover-wrap .gallery-cover-fallback i { font-size: 46px; }
