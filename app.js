@@ -845,7 +845,7 @@ function renderGalleryGrid(container, list) {
       <div class="gallery-card">
         <div class="gallery-cover-wrap${r.coverUrl ? ' img-loading' : ''}" onclick='handleGalleryTap(this, "${r.id}")'>
           ${coverHtml}
-          ${r.isFace ? '<div class="gallery-face-badge" title="Current stack cover"><i class="ti ti-star-filled"></i></div>' : ''}
+          ${r.isFace ? '<div class="gallery-face-badge" title="Current stack cover"><i class="ti ti-star"></i></div>' : ''}
           <div class="gallery-overlay">
             <div class="gallery-overlay-meta">
               <span>${escapeHtml(r.condition || '')}</span>
