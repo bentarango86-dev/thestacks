@@ -1,5 +1,4 @@
-
-  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700;9..144,900&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700;9..144,900&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap');
 
   :root {
     --ink: #0c2340;
@@ -564,7 +563,7 @@
      scrolls internally on desktop — the frame itself stays put. Title,
      artist, and meta lines clamp/truncate instead of stretching the
      layout for an outlier record name. */
-  .detail-modal {
+  .modal.detail-modal {
     max-width: 700px;
     padding: 0;
     overflow: hidden;
@@ -884,7 +883,7 @@
        mobile trades the "stable frame" behavior for a full-width cover —
        the whole info panel scrolls as one unit below a fixed-height cover
        instead of just the notes/tracklist region. */
-    .detail-modal {
+    .modal.detail-modal {
       grid-template-columns: 1fr;
       grid-template-rows: auto 1fr;
       max-width: 100%;
