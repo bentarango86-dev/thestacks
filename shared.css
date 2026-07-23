@@ -1,5 +1,4 @@
-
-  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700;9..144,900&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700;9..144,900&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap');
 
   :root {
     --ink: #0c2340;
@@ -582,14 +581,13 @@
     aspect-ratio: 1 / 1;
     width: 100%;
     align-self: center;
-    padding: 22px;
+    padding: 22px 0;
     display: flex;
     align-items: center;
     justify-content: center;
   }
   .detail-modal-cover-wrap img {
     width: 100%; height: 100%; object-fit: contain; display: block;
-    box-shadow: 0 4px 14px rgba(0,0,0,0.35);
   }
   .detail-modal-cover-wrap .gallery-cover-fallback { width: 100%; height: 100%; }
   .detail-modal-cover-wrap .gallery-cover-fallback i { font-size: 46px; }
