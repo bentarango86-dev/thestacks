@@ -67,9 +67,13 @@ document.getElementById('modals-root').innerHTML = `
           <div class="detail-modal-album" id="detailAlbum"></div>
           <div class="detail-modal-artist" id="detailArtist"></div>
         </div>
-        <div class="detail-modal-actions">
-          <button type="button" id="detailEditBtn" title="Edit"><i class="ti ti-pencil"></i></button>
-          <button type="button" class="detail-modal-close-btn" id="detailCloseBtn" title="Close"><i class="ti ti-x"></i></button>
+        <div class="detail-modal-menu-wrap">
+          <button type="button" class="detail-modal-menu-btn" id="detailMenuBtn" title="More" aria-haspopup="true" aria-expanded="false"><i class="ti ti-dots"></i></button>
+          <div class="detail-modal-menu" id="detailMenu" hidden>
+            <button type="button" class="detail-menu-item" id="detailStarBtn"><i class="ti ti-star"></i><span id="detailStarLabel">Set as stack cover</span></button>
+            <button type="button" class="detail-menu-item" id="detailEditBtn"><i class="ti ti-pencil"></i>Edit</button>
+            <button type="button" class="detail-menu-item" id="detailCloseBtn"><i class="ti ti-x"></i>Close</button>
+          </div>
         </div>
       </div>
       <div class="detail-modal-meta" id="detailMeta"></div>
@@ -85,9 +89,6 @@ document.getElementById('modals-root').innerHTML = `
         <div id="detailTracklistWrap" style="display:none;">
           <ol class="detail-modal-tracklist" id="detailTracklist"></ol>
         </div>
-      </div>
-      <div class="detail-modal-footer">
-        <button type="button" class="star-pill" id="detailStarBtn"><i class="ti ti-star"></i><span id="detailStarLabel">Set as stack cover</span></button>
       </div>
     </div>
   </div>

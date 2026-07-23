@@ -1,4 +1,5 @@
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700;9..144,900&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap');
+
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700;9..144,900&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap');
 
   :root {
     --ink: #0c2340;
@@ -571,6 +572,7 @@
     display: grid;
     grid-template-columns: 45fr 55fr;
     max-height: 85vh;
+    border-radius: 14px;
   }
   .detail-modal-cover-wrap {
     position: relative;
@@ -580,8 +582,15 @@
     aspect-ratio: 1 / 1;
     width: 100%;
     align-self: center;
+    padding: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
-  .detail-modal-cover-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .detail-modal-cover-wrap img {
+    width: 100%; height: 100%; object-fit: contain; display: block;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+  }
   .detail-modal-cover-wrap .gallery-cover-fallback { width: 100%; height: 100%; }
   .detail-modal-cover-wrap .gallery-cover-fallback i { font-size: 46px; }
   .detail-modal-nav {
@@ -612,14 +621,29 @@
     font-size: 13px; color: #55503f; margin-top: 4px;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
-  .detail-modal-actions { display: flex; align-items: center; gap: 1px; flex-shrink: 0; }
-  .detail-modal-actions button {
+  .detail-modal-menu-wrap { position: relative; flex-shrink: 0; }
+  .detail-modal-menu-btn {
     background: none; border: none; color: #8a7d63; cursor: pointer;
-    font-size: 14px; padding: 6px 7px; border-radius: 5px;
+    font-size: 17px; padding: 6px 8px; border-radius: 5px;
   }
-  .detail-modal-actions button:hover { background: rgba(12,35,64,0.07); color: var(--ink); }
-  .detail-modal-actions .detail-modal-close-btn { color: #b3a98d; font-size: 15px; }
-  .detail-modal-actions .detail-modal-close-btn:hover { color: var(--ink); background: rgba(12,35,64,0.06); }
+  .detail-modal-menu-btn:hover { background: rgba(12,35,64,0.07); color: var(--ink); }
+  .detail-modal-menu {
+    position: absolute; top: calc(100% + 4px); right: 0;
+    background: var(--paper); border: 1px solid rgba(26,24,21,0.14);
+    border-radius: 8px; box-shadow: 0 8px 20px rgba(12,35,64,0.18);
+    padding: 5px; min-width: 176px; z-index: 5;
+  }
+  .detail-modal-menu[hidden] { display: none; }
+  .detail-menu-item {
+    display: flex; align-items: center; gap: 9px; width: 100%;
+    background: none; border: none; cursor: pointer; text-align: left;
+    padding: 8px 10px; border-radius: 5px;
+    font-family: 'Inter', sans-serif; font-size: 13px; color: var(--ink);
+  }
+  .detail-menu-item i { font-size: 14px; color: #8a7d63; width: 16px; text-align: center; }
+  .detail-menu-item:hover { background: rgba(12,35,64,0.06); }
+  .detail-menu-item.active { color: var(--amber-dim); }
+  .detail-menu-item.active i { color: var(--amber); }
   .detail-modal-meta {
     font-size: 11px; color: #8a7d63; line-height: 1.6; margin-top: 9px;
     font-family: 'IBM Plex Mono', monospace;
@@ -643,17 +667,6 @@
     font-size: 12.5px; color: #4a4030; line-height: 1.7; list-style: none;
   }
   .detail-modal-notes ~ #detailTracklistWrap .detail-modal-tracklist { margin-top: 12px; }
-  .detail-modal-footer { display: flex; justify-content: flex-end; margin-top: 14px; flex-shrink: 0; }
-  .star-pill {
-    display: inline-flex; align-items: center; gap: 6px;
-    background: transparent; border: 1.5px solid var(--amber); color: var(--amber);
-    font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; font-weight: 600;
-    letter-spacing: 0.04em; padding: 7px 13px; border-radius: 20px; cursor: pointer;
-    transition: background 0.15s ease, color 0.15s ease;
-  }
-  .star-pill i { font-size: 12px; }
-  .star-pill:hover { background: rgba(156,43,50,0.08); }
-  .star-pill.active { background: var(--amber); color: var(--vinyl); }
 
   @keyframes detailCoverIn {
     from { opacity: 0; transform: scale(0.97); }

@@ -1006,6 +1006,7 @@ function buildShelfRow(container, list, listKey, opts = {}) {
 // isn't the place for it either — All Records' row actions and the
 // gallery overlay are), never inside the viewing experience itself.
 function openDetailModal(id) {
+  closeDetailMenu();
   // Flip through whichever list this was opened from (the grid or table the
   // person was just looking at) — falls back to the full collection if the
   // record isn't part of the last-rendered list (e.g. Random Record).
@@ -1072,8 +1073,8 @@ function openDetailModal(id) {
 
   el('detailStarBtn').classList.toggle('active', !!r.isFace);
   el('detailStarLabel').textContent = r.isFace ? 'Stack cover' : 'Set as stack cover';
-  el('detailStarBtn').onclick = () => toggleFace(r.id);
-  el('detailEditBtn').onclick = () => { el('detailOverlay').classList.remove('open'); editRecord(r.id); };
+  el('detailStarBtn').onclick = () => { closeDetailMenu(); toggleFace(r.id); };
+  el('detailEditBtn').onclick = () => { closeDetailMenu(); el('detailOverlay').classList.remove('open'); editRecord(r.id); };
 
   const hasNav = detailList.length > 1 && detailIndex > -1;
   el('detailPrevBtn').style.display = hasNav ? 'flex' : 'none';
@@ -1081,9 +1082,34 @@ function openDetailModal(id) {
 
   el('detailOverlay').classList.add('open');
 }
-el('detailCloseBtn').addEventListener('click', () => el('detailOverlay').classList.remove('open'));
+
+// ---- Detail modal's ellipsis menu (Star / Edit / Close, consolidated) ----
+function openDetailMenu() {
+  el('detailMenu').hidden = false;
+  el('detailMenuBtn').setAttribute('aria-expanded', 'true');
+}
+function closeDetailMenu() {
+  el('detailMenu').hidden = true;
+  el('detailMenuBtn').setAttribute('aria-expanded', 'false');
+}
+el('detailMenuBtn').addEventListener('click', e => {
+  e.stopPropagation();
+  if (el('detailMenu').hidden) openDetailMenu(); else closeDetailMenu();
+});
+document.addEventListener('click', e => {
+  if (!el('detailMenu').hidden && !el('detailMenu').contains(e.target) && e.target !== el('detailMenuBtn')) {
+    closeDetailMenu();
+  }
+});
+el('detailCloseBtn').addEventListener('click', () => {
+  closeDetailMenu();
+  el('detailOverlay').classList.remove('open');
+});
 el('detailOverlay').addEventListener('click', e => {
-  if (e.target === el('detailOverlay')) el('detailOverlay').classList.remove('open');
+  if (e.target === el('detailOverlay')) {
+    closeDetailMenu();
+    el('detailOverlay').classList.remove('open');
+  }
 });
 
 function detailStep(direction) {
@@ -1097,7 +1123,10 @@ document.addEventListener('keydown', e => {
   if (!el('detailOverlay').classList.contains('open')) return;
   if (e.key === 'ArrowLeft') detailStep(-1);
   else if (e.key === 'ArrowRight') detailStep(1);
-  else if (e.key === 'Escape') el('detailOverlay').classList.remove('open');
+  else if (e.key === 'Escape') {
+    if (!el('detailMenu').hidden) closeDetailMenu();
+    else el('detailOverlay').classList.remove('open');
+  }
 });
 
 function openRandomRecord() {
