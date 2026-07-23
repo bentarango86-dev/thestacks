@@ -418,6 +418,62 @@
     .shelf-arrow { width: 34px; font-size: 18px; }
   }
 
+  /* ---------- NEW ARRIVALS (Recently Added, featured like a shop's front bin) ---------- */
+  .new-arrivals-panel {
+    margin-bottom: 38px;
+    padding: 18px 20px 14px;
+    background:
+      radial-gradient(140% 100% at 0% 0%, rgba(255,214,120,0.22) 0%, rgba(255,214,120,0) 55%),
+      linear-gradient(180deg, #fdf4e0 0%, #f9ecc9 100%);
+    border: 1px solid #ecd9a3;
+    border-radius: 10px;
+    box-shadow: 0 6px 18px rgba(12,35,64,0.1), inset 0 1px 0 rgba(255,255,255,0.6);
+  }
+  .new-arrivals-sign {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .new-arrivals-tag {
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--rust);
+  }
+  .new-arrivals-subtitle {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10.5px;
+    font-style: italic;
+    color: #9c7a3a;
+    letter-spacing: 0.02em;
+  }
+
+  /* Featured covers get more presence than a regular shelf. */
+  .shelf-cover-featured {
+    width: 168px;
+  }
+  @media (max-width: 560px) {
+    .shelf-cover-featured { width: 134px; }
+  }
+
+  .shelf-added-badge {
+    position: absolute;
+    top: 8px; left: 8px;
+    padding: 3px 8px;
+    border-radius: 3px;
+    background: var(--rust);
+    color: var(--vinyl);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    box-shadow: 0 2px 5px rgba(12,35,64,0.35);
+    z-index: 2;
+    pointer-events: none;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .shelf-row { scroll-behavior: auto; }
     .gallery-cover-wrap.shelf-cover:hover,

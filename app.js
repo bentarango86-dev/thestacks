@@ -896,14 +896,30 @@ function setShelfContext(key) {
   if (typeof saveLastGenre === 'function') saveLastGenre(key);
 }
 
-function buildShelfCover(r, listKey) {
+// Today / Yesterday / weekday / short date — matches how someone would
+// actually describe when something came in, not a raw timestamp.
+function relativeAddedLabel(addedAt) {
+  if (!addedAt) return null;
+  const added = new Date(addedAt);
+  if (isNaN(added)) return null;
+  const startOf = d => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const diffDays = Math.round((startOf(new Date()) - startOf(added)) / 86400000);
+  if (diffDays <= 0) return 'Today';
+  if (diffDays === 1) return 'Yesterday';
+  if (diffDays < 7) return added.toLocaleDateString(undefined, { weekday: 'long' });
+  return added.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+
+function buildShelfCover(r, listKey, opts = {}) {
   const coverHtml = r.coverUrl
     ? `<img src="${escapeAttr(r.coverUrl)}" alt="" loading="lazy" onload="this.parentElement.classList.remove('img-loading')" onerror="this.parentElement.classList.remove('img-loading'); this.outerHTML='<div class=&quot;gallery-cover-fallback&quot;><i class=&quot;ti ${iconForGenre(r.genre)}&quot;></i></div>'">`
     : `<div class="gallery-cover-fallback"><i class="ti ${iconForGenre(r.genre)}"></i></div>`;
   const key = escapeAttr(JSON.stringify(listKey));
+  const addedLabel = opts.featured ? relativeAddedLabel(r.addedAt) : null;
   return `
-    <div class="gallery-cover-wrap shelf-cover${r.coverUrl ? ' img-loading' : ''}" onclick='setShelfContext(${key}); handleGalleryTap(this, "${r.id}")'>
+    <div class="gallery-cover-wrap shelf-cover${opts.featured ? ' shelf-cover-featured' : ''}${r.coverUrl ? ' img-loading' : ''}" onclick='setShelfContext(${key}); handleGalleryTap(this, "${r.id}")'>
       ${coverHtml}
+      ${addedLabel ? `<div class="shelf-added-badge">Added ${addedLabel}</div>` : ''}
       <div class="shelf-cover-overlay">
         <div class="shelf-cover-text">
           <div class="shelf-cover-album">${escapeHtml(r.album)}</div>
@@ -956,10 +972,10 @@ const shelfResizeObserver = typeof ResizeObserver !== 'undefined'
   ? new ResizeObserver(entries => entries.forEach(e => updateShelfArrows(e.target)))
   : null;
 
-function buildShelfRow(container, list, listKey) {
+function buildShelfRow(container, list, listKey, opts = {}) {
   if (!container) return;
   shelfListRegistry[listKey] = list;
-  container.innerHTML = list.map(r => buildShelfCover(r, listKey)).join('');
+  container.innerHTML = list.map(r => buildShelfCover(r, listKey, opts)).join('');
   armLazyImageTimeouts(container);
   wireShelfArrows(container);
   if (shelfResizeObserver) shelfResizeObserver.observe(container);

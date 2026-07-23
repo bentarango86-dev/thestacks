@@ -71,8 +71,11 @@
     <div class="gallery-grid" id="searchResultsGrid"></div>
   </div>
 
-  <div class="shelf" id="recentlyAddedShelf">
-    <div class="shelf-label"><h3>Recently Added</h3></div>
+  <div class="new-arrivals-panel" id="recentlyAddedShelf">
+    <div class="new-arrivals-sign">
+      <span class="new-arrivals-tag">New Arrivals</span>
+      <span class="new-arrivals-subtitle">Fresh off the shelf</span>
+    </div>
     <div class="shelf-body">
       <button type="button" class="shelf-arrow prev" aria-label="Scroll left" hidden onclick="scrollShelf(this, -1)"><i class="ti ti-chevron-left"></i></button>
       <div class="shelf-row" id="recentlyAddedRow"></div>
@@ -178,7 +181,7 @@ function renderRecentlyAdded() {
     return;
   }
   el('recentlyAddedShelf').style.display = 'block';
-  buildShelfRow(el('recentlyAddedRow'), recent, 'recentlyAdded');
+  buildShelfRow(el('recentlyAddedRow'), recent, 'recentlyAdded', { featured: true });
 }
 
 // ---- SEARCH (primary navigation on the homepage) ----
