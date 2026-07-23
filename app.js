@@ -1019,9 +1019,14 @@ function openDetailModal(id) {
 
   if (r.coverUrl) {
     el('detailCoverWrap').classList.add('img-loading');
-    el('detailCover').onload = () => el('detailCoverWrap').classList.remove('img-loading');
+    el('detailCoverWrap').classList.remove('has-cover');
+    el('detailCover').onload = () => {
+      el('detailCoverWrap').classList.remove('img-loading');
+      el('detailCoverWrap').classList.add('has-cover');
+    };
     el('detailCover').onerror = () => {
       el('detailCoverWrap').classList.remove('img-loading');
+      el('detailCoverWrap').classList.remove('has-cover');
       el('detailCover').style.display = 'none';
       el('detailCoverFallback').style.display = 'flex';
       el('detailCoverFallback').innerHTML = `<i class="ti ${iconForGenre(r.genre)}"></i>`;
@@ -1031,6 +1036,7 @@ function openDetailModal(id) {
     el('detailCoverFallback').style.display = 'none';
   } else {
     el('detailCoverWrap').classList.remove('img-loading');
+    el('detailCoverWrap').classList.remove('has-cover');
     el('detailCover').style.display = 'none';
     el('detailCoverFallback').style.display = 'flex';
     el('detailCoverFallback').innerHTML = `<i class="ti ${iconForGenre(r.genre)}"></i>`;
