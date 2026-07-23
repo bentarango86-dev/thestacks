@@ -564,7 +564,7 @@
      artist, and meta lines clamp/truncate instead of stretching the
      layout for an outlier record name. */
   .modal.detail-modal {
-    max-width: 700px;
+    max-width: 820px;
     padding: 0;
     overflow: hidden;
     display: grid;
