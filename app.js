@@ -727,6 +727,21 @@ function editRecord(id) {
   if (r) openModal(r);
 }
 
+// Refreshes just the star-cover control on the currently-open Detail Modal,
+// if it happens to be showing the record that was just toggled — toggleFace
+// can be triggered from the gallery/table/shelf behind the modal too (once
+// those get real-time updates), so this keeps the open view in sync without
+// forcing a full reopen.
+function refreshOpenDetailStar(id) {
+  if (!el('detailOverlay').classList.contains('open')) return;
+  const current = detailList[detailIndex];
+  if (!current || current.id !== id) return;
+  const r = records.find(x => x.id === id);
+  if (!r) return;
+  el('detailStarBtn').classList.toggle('active', !!r.isFace);
+  el('detailStarLabel').textContent = r.isFace ? 'Stack cover' : 'Set as stack cover';
+}
+
 async function toggleFace(id) {
   const record = records.find(x => x.id === id);
   if (!record) return;
@@ -745,6 +760,7 @@ async function toggleFace(id) {
   });
   setCachedRecords(records);
   renderPage();
+  refreshOpenDetailStar(id);
 
   try {
     if (!turningOn) {
@@ -766,6 +782,7 @@ async function toggleFace(id) {
     });
     setCachedRecords(records);
     renderPage();
+    refreshOpenDetailStar(id);
     alert('Could not update stack cover: ' + err.message);
   }
 }
@@ -982,6 +999,12 @@ function buildShelfRow(container, list, listKey, opts = {}) {
 }
 
 // ---- ALBUM DETAIL MODAL ("opening the record jacket") ----
+// This is a dedicated VIEWING experience, deliberately separate from
+// editing: the only actions surfaced here are Edit (hands off to the
+// record form) and Set as stack cover (a curation action, not an edit).
+// Delete lives exclusively in the edit/management flows (the record form
+// isn't the place for it either — All Records' row actions and the
+// gallery overlay are), never inside the viewing experience itself.
 function openDetailModal(id) {
   // Flip through whichever list this was opened from (the grid or table the
   // person was just looking at) — falls back to the full collection if the
@@ -1013,14 +1036,16 @@ function openDetailModal(id) {
   }
 
   el('detailAlbum').textContent = r.album;
+  el('detailAlbum').title = r.album;
   el('detailArtist').textContent = r.artist;
+  el('detailArtist').title = r.artist;
 
   const metaLines = [
     [r.year, r.format, r.releaseType].filter(Boolean).join(' · '),
     [r.label, r.catalogNumber].filter(Boolean).join(' · '),
     r.country
   ].filter(Boolean);
-  el('detailMeta').innerHTML = metaLines.map(l => `<div>${escapeHtml(l)}</div>`).join('');
+  el('detailMeta').innerHTML = metaLines.map(l => `<div title="${escapeAttr(l)}">${escapeHtml(l)}</div>`).join('');
 
   el('detailCondition').textContent = r.condition || '—';
   el('detailPrice').textContent = r.price ? '$' + r.price.toFixed(2) : '—';
@@ -1040,11 +1065,15 @@ function openDetailModal(id) {
   } else {
     el('detailTracklistWrap').style.display = 'none';
   }
+  // Hide the whole scroll region (and its top border) when there's neither
+  // notes nor a tracklist, rather than leaving an empty bordered gap.
+  const scrollEl = document.querySelector('#detailOverlay .detail-modal-scroll');
+  if (scrollEl) scrollEl.style.display = (r.notes || tracks.length) ? 'block' : 'none';
 
   el('detailStarBtn').classList.toggle('active', !!r.isFace);
+  el('detailStarLabel').textContent = r.isFace ? 'Stack cover' : 'Set as stack cover';
   el('detailStarBtn').onclick = () => toggleFace(r.id);
   el('detailEditBtn').onclick = () => { el('detailOverlay').classList.remove('open'); editRecord(r.id); };
-  el('detailDeleteBtn').onclick = () => deleteRecord(r.id);
 
   const hasNav = detailList.length > 1 && detailIndex > -1;
   el('detailPrevBtn').style.display = hasNav ? 'flex' : 'none';
