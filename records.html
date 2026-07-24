@@ -48,12 +48,18 @@
       <button type="button" class="search-clear-btn" id="searchClear" title="Clear search"><i class="ti ti-x"></i></button>
     </div>
     <select id="filterGenre"><option value="">All genres</option></select>
-    <select id="filterYear"><option value="">All years</option></select>
     <select id="filterFormat"><option value="">All formats</option></select>
+    <select id="filterYear"><option value="">All years</option></select>
+    <button type="button" class="btn btn-ghost filter-more-btn" id="moreFiltersBtn" aria-expanded="false">
+      <i class="ti ti-adjustments-horizontal" style="font-size:15px; vertical-align:-2px; margin-right:5px;"></i>More filters<span class="filter-count-badge" id="filterCountBadge" hidden></span>
+    </button>
+    <button class="btn btn-primary" id="addBtn">+ Add Record</button>
+  </div>
+
+  <div class="more-filters-row" id="moreFiltersRow" hidden>
     <select id="filterCondition"><option value="">All conditions</option></select>
     <select id="filterCountry"><option value="">All countries</option></select>
     <select id="filterLabel"><option value="">All labels</option></select>
-    <button class="btn btn-primary" id="addBtn">+ Add Record</button>
   </div>
 
   <div class="loading-state" id="loadingState">
@@ -229,10 +235,40 @@ el('trackOverlay').addEventListener('click', e => {
   if (e.target === el('trackOverlay')) el('trackOverlay').classList.remove('open');
 });
 
+// ---- "More filters" disclosure (condition / country / label) ----
+// These three are collector-nerd metadata that most people won't touch on
+// a given visit — keeping them tucked away by default keeps the main bar
+// from turning into a wall of dropdowns, while the badge below makes sure
+// an active hidden filter is never invisible.
+function updateFilterCountBadge() {
+  const count = [el('filterCondition').value, el('filterCountry').value, el('filterLabel').value]
+    .filter(Boolean).length;
+  const badge = el('filterCountBadge');
+  badge.textContent = count;
+  badge.hidden = count === 0;
+  el('moreFiltersBtn').classList.toggle('has-active', count > 0);
+}
+function setMoreFiltersOpen(open) {
+  el('moreFiltersRow').hidden = !open;
+  el('moreFiltersBtn').setAttribute('aria-expanded', String(open));
+}
+el('moreFiltersBtn').addEventListener('click', () => {
+  setMoreFiltersOpen(el('moreFiltersRow').hidden);
+});
+// If a hidden filter is already active on load (e.g. restored some other
+// way), surface the row open rather than leaving an invisible active filter.
+function syncMoreFiltersVisibility() {
+  updateFilterCountBadge();
+  if (!el('filterCountBadge').hidden && el('moreFiltersRow').hidden) {
+    setMoreFiltersOpen(true);
+  }
+}
+
 function renderPage() {
   renderStats();
   renderGenreFilter();
   renderFlatCrate();
+  syncMoreFiltersVisibility();
 }
 
 el('search').addEventListener('input', debounce(renderFlatCrate, 150));
@@ -240,9 +276,9 @@ wireSearchClear('search', 'searchClear', renderFlatCrate);
 el('filterGenre').addEventListener('change', renderFlatCrate);
 el('filterYear').addEventListener('change', renderFlatCrate);
 el('filterFormat').addEventListener('change', renderFlatCrate);
-el('filterCondition').addEventListener('change', renderFlatCrate);
-el('filterCountry').addEventListener('change', renderFlatCrate);
-el('filterLabel').addEventListener('change', renderFlatCrate);
+el('filterCondition').addEventListener('change', () => { updateFilterCountBadge(); renderFlatCrate(); });
+el('filterCountry').addEventListener('change', () => { updateFilterCountBadge(); renderFlatCrate(); });
+el('filterLabel').addEventListener('change', () => { updateFilterCountBadge(); renderFlatCrate(); });
 
 // Arrived here from a stack tile (?genre=) or the homepage search's
 // "refine with filters" link (?q=) — pre-apply whichever was passed.

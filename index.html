@@ -49,16 +49,18 @@
     <div class="quick-row" id="homeQuickRow">
       <button type="button" class="chip-btn" id="randomBtn"><i class="ti ti-dice-5"></i>Random Record</button>
       <a href="#" class="chip-btn" id="continueBtn" style="display:none;"><i class="ti ti-history"></i><span id="continueLabel"></span></a>
-      <button class="btn btn-primary" id="addBtn" style="margin-left:auto;">+ Add Record</button>
+      <div class="quick-row-right">
+        <div class="sort-menu-wrap" id="sortMenuWrap">
+          <button type="button" class="icon-btn" id="sortMenuBtn" title="Sort stacks" aria-haspopup="true" aria-expanded="false"><i class="ti ti-arrows-sort"></i></button>
+          <div class="sort-menu" id="sortMenu" hidden>
+            <button type="button" class="sort-menu-item" data-sort="genre-asc">Genre A–Z</button>
+            <button type="button" class="sort-menu-item" data-sort="count-desc">Most records</button>
+            <button type="button" class="sort-menu-item" data-sort="count-asc">Fewest records</button>
+          </div>
+        </div>
+        <button class="btn btn-primary" id="addBtn">+ Add Record</button>
+      </div>
     </div>
-  </div>
-
-  <div class="controls" id="stacksControls">
-    <select id="stackSortBy">
-      <option value="genre-asc">Genre A–Z</option>
-      <option value="count-desc">Most records</option>
-      <option value="count-asc">Fewest records</option>
-    </select>
   </div>
 
   <div class="loading-state" id="loadingState">
@@ -114,10 +116,42 @@ function saveSort(key, value) {
   try { localStorage.setItem(key, value); } catch (e) { /* private browsing etc — non-fatal */ }
 }
 
-el('stackSortBy').value = loadSavedSort('stacks:stackSort', 'genre-asc');
-el('stackSortBy').addEventListener('change', () => {
-  saveSort('stacks:stackSort', el('stackSortBy').value);
+// ---- Stack sort: small icon-triggered menu instead of a standalone
+// dropdown bar, so it reads as a minor view option, not a primary control. ----
+let stackSort = loadSavedSort('stacks:stackSort', 'genre-asc');
+
+function openSortMenu() {
+  el('sortMenu').hidden = false;
+  el('sortMenuBtn').setAttribute('aria-expanded', 'true');
+}
+function closeSortMenu() {
+  el('sortMenu').hidden = true;
+  el('sortMenuBtn').setAttribute('aria-expanded', 'false');
+}
+function setStackSort(value) {
+  stackSort = value;
+  saveSort('stacks:stackSort', value);
+  document.querySelectorAll('.sort-menu-item').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.sort === value);
+  });
+  closeSortMenu();
   renderShelves();
+}
+el('sortMenuBtn').addEventListener('click', e => {
+  e.stopPropagation();
+  if (el('sortMenu').hidden) openSortMenu(); else closeSortMenu();
+});
+document.addEventListener('click', e => {
+  if (!el('sortMenu').hidden && !el('sortMenu').contains(e.target) && e.target !== el('sortMenuBtn')) {
+    closeSortMenu();
+  }
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && !el('sortMenu').hidden) closeSortMenu();
+});
+document.querySelectorAll('.sort-menu-item').forEach(btn => {
+  btn.classList.toggle('active', btn.dataset.sort === stackSort);
+  btn.addEventListener('click', () => setStackSort(btn.dataset.sort));
 });
 
 function renderShelves() {
@@ -137,7 +171,6 @@ function renderShelves() {
     (groups[key] = groups[key] || []).push(r);
   });
 
-  const stackSort = el('stackSortBy').value;
   const entries = Object.entries(groups).sort((a, b) => {
     if (a[0] === '__none__') return 1;
     if (b[0] === '__none__') return -1;
