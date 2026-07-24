@@ -25,11 +25,19 @@
       <p>your personal record ledger</p>
     </div>
     <div class="header-actions">
-      <span id="userEmail" style="font-family:'IBM Plex Mono',monospace; font-size:11px; color:rgba(12,35,64,0.55);"></span>
-      <button class="btn btn-ghost" id="helpBtn" style="display:none;"><i class="ti ti-help-circle" style="font-size:15px; vertical-align:-2px; margin-right:3px;"></i>Help</button>
-      <button class="btn btn-ghost" id="securityBtn" style="display:none;"><i class="ti ti-shield-lock" style="font-size:15px; vertical-align:-2px; margin-right:3px;"></i>Security</button>
-      <button class="btn btn-ghost" id="exportBtn" style="display:none;"><i class="ti ti-download" style="font-size:15px; vertical-align:-2px; margin-right:3px;"></i>Export CSV</button>
-      <button class="btn btn-ghost" id="signOutBtn" style="display:none;">Sign out</button>
+      <div class="profile-menu-wrap" id="profileMenuWrap">
+        <button type="button" class="profile-card-btn" id="profileMenuBtn" aria-haspopup="true" aria-expanded="false">
+          <span class="profile-avatar" id="profileAvatar"></span>
+          <span id="profileName"></span>
+          <i class="ti ti-chevron-down profile-caret"></i>
+        </button>
+        <div class="profile-menu" id="profileMenu" hidden>
+          <button type="button" class="detail-menu-item" id="helpBtn"><i class="ti ti-help-circle"></i>Help</button>
+          <button type="button" class="detail-menu-item" id="securityBtn"><i class="ti ti-shield-lock"></i>Security</button>
+          <div class="profile-menu-divider"></div>
+          <button type="button" class="detail-menu-item" id="signOutBtn"><i class="ti ti-logout"></i>Sign out</button>
+        </div>
+      </div>
     </div>
   </header>
 
@@ -48,18 +56,9 @@
       <button type="button" class="search-clear-btn" id="searchClear" title="Clear search"><i class="ti ti-x"></i></button>
     </div>
     <select id="filterGenre"><option value="">All genres</option></select>
-    <select id="filterFormat"><option value="">All formats</option></select>
     <select id="filterYear"><option value="">All years</option></select>
-    <button type="button" class="btn btn-ghost filter-more-btn" id="moreFiltersBtn" aria-expanded="false">
-      <i class="ti ti-adjustments-horizontal" style="font-size:15px; vertical-align:-2px; margin-right:5px;"></i>More filters<span class="filter-count-badge" id="filterCountBadge" hidden></span>
-    </button>
+    <button type="button" class="btn btn-ghost" id="exportBtn"><i class="ti ti-download" style="font-size:15px; vertical-align:-2px; margin-right:5px;"></i>Export CSV</button>
     <button class="btn btn-primary" id="addBtn">+ Add Record</button>
-  </div>
-
-  <div class="more-filters-row" id="moreFiltersRow" hidden>
-    <select id="filterCondition"><option value="">All conditions</option></select>
-    <select id="filterCountry"><option value="">All countries</option></select>
-    <select id="filterLabel"><option value="">All labels</option></select>
   </div>
 
   <div class="loading-state" id="loadingState">
@@ -113,16 +112,7 @@ function populateFilterOptions() {
   const uniq = key => [...new Set(records.map(r => r[key]).filter(Boolean))].sort();
 
   el('filterYear').dataset.allLabel = 'All years';
-  el('filterFormat').dataset.allLabel = 'All formats';
-  el('filterCondition').dataset.allLabel = 'All conditions';
-  el('filterCountry').dataset.allLabel = 'All countries';
-  el('filterLabel').dataset.allLabel = 'All labels';
-
   populate('filterYear', uniq('year').sort((a,b) => b - a), el('filterYear').value);
-  populate('filterFormat', uniq('format'), el('filterFormat').value);
-  populate('filterCondition', uniq('condition'), el('filterCondition').value);
-  populate('filterCountry', uniq('country'), el('filterCountry').value);
-  populate('filterLabel', uniq('label'), el('filterLabel').value);
 }
 
 function renderFlatCrate() {
@@ -131,22 +121,13 @@ function renderFlatCrate() {
   const search = el('search').value.toLowerCase();
   const genreFilter = el('filterGenre').value;
   const yearFilter = el('filterYear').value;
-  const formatFilter = el('filterFormat').value;
-  const conditionFilter = el('filterCondition').value;
-  const countryFilter = el('filterCountry').value;
-  const labelFilter = el('filterLabel').value;
 
   let list = records.filter(r => {
     const matchesSearch = !search || recordMatchesQuery(r, search);
     const matchesGenre = !genreFilter ||
       (genreFilter === '__none__' ? !r.genre : r.genre === genreFilter);
     const matchesYear = !yearFilter || r.year === yearFilter;
-    const matchesFormat = !formatFilter || r.format === formatFilter;
-    const matchesCondition = !conditionFilter || r.condition === conditionFilter;
-    const matchesCountry = !countryFilter || r.country === countryFilter;
-    const matchesLabel = !labelFilter || r.label === labelFilter;
-    return matchesSearch && matchesGenre && matchesYear && matchesFormat &&
-           matchesCondition && matchesCountry && matchesLabel;
+    return matchesSearch && matchesGenre && matchesYear;
   });
 
   const { key, dir } = tableSort;
@@ -235,50 +216,16 @@ el('trackOverlay').addEventListener('click', e => {
   if (e.target === el('trackOverlay')) el('trackOverlay').classList.remove('open');
 });
 
-// ---- "More filters" disclosure (condition / country / label) ----
-// These three are collector-nerd metadata that most people won't touch on
-// a given visit — keeping them tucked away by default keeps the main bar
-// from turning into a wall of dropdowns, while the badge below makes sure
-// an active hidden filter is never invisible.
-function updateFilterCountBadge() {
-  const count = [el('filterCondition').value, el('filterCountry').value, el('filterLabel').value]
-    .filter(Boolean).length;
-  const badge = el('filterCountBadge');
-  badge.textContent = count;
-  badge.hidden = count === 0;
-  el('moreFiltersBtn').classList.toggle('has-active', count > 0);
-}
-function setMoreFiltersOpen(open) {
-  el('moreFiltersRow').hidden = !open;
-  el('moreFiltersBtn').setAttribute('aria-expanded', String(open));
-}
-el('moreFiltersBtn').addEventListener('click', () => {
-  setMoreFiltersOpen(el('moreFiltersRow').hidden);
-});
-// If a hidden filter is already active on load (e.g. restored some other
-// way), surface the row open rather than leaving an invisible active filter.
-function syncMoreFiltersVisibility() {
-  updateFilterCountBadge();
-  if (!el('filterCountBadge').hidden && el('moreFiltersRow').hidden) {
-    setMoreFiltersOpen(true);
-  }
-}
-
 function renderPage() {
   renderStats();
   renderGenreFilter();
   renderFlatCrate();
-  syncMoreFiltersVisibility();
 }
 
 el('search').addEventListener('input', debounce(renderFlatCrate, 150));
 wireSearchClear('search', 'searchClear', renderFlatCrate);
 el('filterGenre').addEventListener('change', renderFlatCrate);
 el('filterYear').addEventListener('change', renderFlatCrate);
-el('filterFormat').addEventListener('change', renderFlatCrate);
-el('filterCondition').addEventListener('change', () => { updateFilterCountBadge(); renderFlatCrate(); });
-el('filterCountry').addEventListener('change', () => { updateFilterCountBadge(); renderFlatCrate(); });
-el('filterLabel').addEventListener('change', () => { updateFilterCountBadge(); renderFlatCrate(); });
 
 // Arrived here from a stack tile (?genre=) or the homepage search's
 // "refine with filters" link (?q=) — pre-apply whichever was passed.

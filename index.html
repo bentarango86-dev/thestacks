@@ -25,11 +25,20 @@
       <p>your personal record ledger</p>
     </div>
     <div class="header-actions">
-      <span id="userEmail" style="font-family:'IBM Plex Mono',monospace; font-size:11px; color:rgba(12,35,64,0.55);"></span>
-      <button class="btn btn-ghost" id="helpBtn" style="display:none;"><i class="ti ti-help-circle" style="font-size:15px; vertical-align:-2px; margin-right:3px;"></i>Help</button>
-      <button class="btn btn-ghost" id="securityBtn" style="display:none;"><i class="ti ti-shield-lock" style="font-size:15px; vertical-align:-2px; margin-right:3px;"></i>Security</button>
-      <button class="btn btn-ghost" id="exportBtn" style="display:none;"><i class="ti ti-download" style="font-size:15px; vertical-align:-2px; margin-right:3px;"></i>Export CSV</button>
-      <button class="btn btn-ghost" id="signOutBtn" style="display:none;">Sign out</button>
+      <div class="profile-menu-wrap" id="profileMenuWrap">
+        <button type="button" class="profile-card-btn" id="profileMenuBtn" aria-haspopup="true" aria-expanded="false">
+          <span class="profile-avatar" id="profileAvatar"></span>
+          <span id="profileName"></span>
+          <i class="ti ti-chevron-down profile-caret"></i>
+        </button>
+        <div class="profile-menu" id="profileMenu" hidden>
+          <button type="button" class="detail-menu-item" id="helpBtn"><i class="ti ti-help-circle"></i>Help</button>
+          <button type="button" class="detail-menu-item" id="securityBtn"><i class="ti ti-shield-lock"></i>Security</button>
+          <button type="button" class="detail-menu-item" id="exportBtn"><i class="ti ti-download"></i>Export CSV</button>
+          <div class="profile-menu-divider"></div>
+          <button type="button" class="detail-menu-item" id="signOutBtn"><i class="ti ti-logout"></i>Sign out</button>
+        </div>
+      </div>
     </div>
   </header>
 
