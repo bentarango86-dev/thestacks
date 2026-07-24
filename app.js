@@ -71,6 +71,10 @@ el('authSubmitBtn').addEventListener('click', async () => {
   el('authSubmitBtn').disabled = false;
 });
 
+el('signOutBtn').addEventListener('click', async () => {
+  await sb.auth.signOut();
+});
+
 sb.auth.onAuthStateChange((_event, session) => {
   currentUser = session?.user || null;
   if (currentUser) {
@@ -79,8 +83,11 @@ sb.auth.onAuthStateChange((_event, session) => {
     el('loginOverlay').classList.add('open');
     el('mfaChallengeOverlay').classList.remove('open');
     el('appBody').style.display = 'none';
-    el('profileMenuWrap').style.display = 'none';
-    closeProfileMenu();
+    el('signOutBtn').style.display = 'none';
+    el('securityBtn').style.display = 'none';
+    el('helpBtn').style.display = 'none';
+    el('exportBtn').style.display = 'none';
+    el('userEmail').textContent = '';
     records = [];
     clearRecordsCache();
   }
@@ -96,7 +103,10 @@ async function checkAalAndProceed() {
     // User has MFA enrolled and hasn't completed the second factor yet this session.
     el('loginOverlay').classList.remove('open');
     el('appBody').style.display = 'none';
-    el('profileMenuWrap').style.display = 'none';
+    el('securityBtn').style.display = 'none';
+    el('helpBtn').style.display = 'none';
+    el('exportBtn').style.display = 'none';
+    el('signOutBtn').style.display = 'none';
     el('mfaChallengeOverlay').classList.add('open');
     el('mfaChallengeCode').value = '';
     el('mfaChallengeError').style.display = 'none';
@@ -105,57 +115,14 @@ async function checkAalAndProceed() {
     el('loginOverlay').classList.remove('open');
     el('mfaChallengeOverlay').classList.remove('open');
     el('appBody').style.display = 'block';
-    el('profileMenuWrap').style.display = 'flex';
-    setProfileIdentity(currentUser.email);
+    el('signOutBtn').style.display = 'inline-block';
+    el('securityBtn').style.display = 'inline-block';
+    el('helpBtn').style.display = 'inline-block';
+    el('exportBtn').style.display = 'inline-block';
+    el('userEmail').textContent = currentUser.email;
     loadRecords();
   }
 }
-
-// ---- Profile / "collector card" menu ----
-// One consolidated identity control in the header (avatar + name + caret)
-// instead of a loose row of buttons — Help, Security, and Sign out (plus
-// Export CSV on pages that don't have a natural spot for it in-page) live
-// behind it.
-function deriveDisplayName(email) {
-  if (!email) return '';
-  const local = email.split('@')[0] || email;
-  const cleaned = local.replace(/[._-]+/g, ' ').trim();
-  const first = cleaned.split(' ')[0] || local;
-  return first.charAt(0).toUpperCase() + first.slice(1);
-}
-function setProfileIdentity(email) {
-  const name = deriveDisplayName(email);
-  el('profileName').textContent = name;
-  el('profileAvatar').textContent = name.charAt(0).toUpperCase();
-  el('profileMenuBtn').title = email;
-}
-function openProfileMenu() {
-  el('profileMenu').hidden = false;
-  el('profileMenuBtn').classList.add('open');
-  el('profileMenuBtn').setAttribute('aria-expanded', 'true');
-}
-function closeProfileMenu() {
-  el('profileMenu').hidden = true;
-  el('profileMenuBtn').classList.remove('open');
-  el('profileMenuBtn').setAttribute('aria-expanded', 'false');
-}
-el('profileMenuBtn').addEventListener('click', e => {
-  e.stopPropagation();
-  if (el('profileMenu').hidden) openProfileMenu(); else closeProfileMenu();
-});
-document.addEventListener('click', e => {
-  if (!el('profileMenu').hidden && !el('profileMenu').contains(e.target) && e.target !== el('profileMenuBtn')) {
-    closeProfileMenu();
-  }
-});
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape' && !el('profileMenu').hidden) closeProfileMenu();
-});
-
-el('signOutBtn').addEventListener('click', async () => {
-  closeProfileMenu();
-  await sb.auth.signOut();
-});
 
 // ---- MFA: sign-in challenge (second factor) ----
 el('mfaChallengeSubmitBtn').addEventListener('click', async () => {
@@ -198,7 +165,6 @@ function showMfaState(state) {
 }
 
 el('securityBtn').addEventListener('click', async () => {
-  closeProfileMenu();
   el('securityOverlay').classList.add('open');
   const { data, error } = await sb.auth.mfa.listFactors();
   if (error) { console.error(error); return; }
@@ -213,7 +179,6 @@ el('securityOverlay').addEventListener('click', e => {
 });
 
 el('helpBtn').addEventListener('click', () => {
-  closeProfileMenu();
   el('helpOverlay').classList.add('open');
 });
 el('helpCloseBtn').addEventListener('click', () => el('helpOverlay').classList.remove('open'));
@@ -1195,7 +1160,6 @@ function wireSearchClear(inputId, clearBtnId, onChange) {
 }
 
 el('exportBtn').addEventListener('click', () => {
-  closeProfileMenu();
   if (!records.length) { alert('Your collection is empty — nothing to export yet.'); return; }
   const columns = [
     ['album', 'Album'], ['artist', 'Artist'], ['year', 'Year'], ['genre', 'Genre'],
