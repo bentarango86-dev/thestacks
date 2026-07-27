@@ -1,5 +1,4 @@
-
-  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700;9..144,900&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700;9..144,900&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap');
 
   :root {
     --ink: #0c2340;
@@ -363,8 +362,6 @@
   .shelf-body {
     position: relative;
     padding: 16px 0 0;
-    background:
-      linear-gradient(180deg, rgba(12,35,64,0.07) 0%, rgba(12,35,64,0.015) 22%, rgba(12,35,64,0) 55%);
     border-radius: 4px 4px 0 0;
   }
 
