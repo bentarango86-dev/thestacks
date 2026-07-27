@@ -1,4 +1,5 @@
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700;9..144,900&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap');
+
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700;9..144,900&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap');
 
   :root {
     --ink: #0c2340;
@@ -940,6 +941,52 @@
   }
   .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--amber-dim); }
   .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .field-row-4 { grid-template-columns: repeat(4, 1fr); }
+
+  .form-section-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin: 20px 0 10px;
+  }
+  .form-section-label:first-of-type { margin-top: 4px; }
+
+  .more-details-toggle {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    background: none;
+    border: 1px dashed rgba(26,24,21,0.3);
+    border-radius: 5px;
+    padding: 9px 12px;
+    margin-top: 6px;
+    cursor: pointer;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    color: #6b6650;
+    text-align: left;
+  }
+  .more-details-toggle:hover { border-color: var(--amber-dim); color: var(--ink); }
+  .more-details-toggle i { font-size: 12px; margin-right: 5px; transition: transform 0.15s ease; }
+  .more-details-toggle[aria-expanded="true"] i { transform: rotate(90deg); }
+  .more-details-badge {
+    background: var(--paper-dim);
+    color: var(--olive);
+    font-size: 9.5px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .more-details-panel { margin-top: 13px; }
+  .more-details-panel[hidden] { display: none; }
   .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
 
   .help-modal { max-width: 560px; }
@@ -993,6 +1040,8 @@
     .logo-mark { width: 48px; height: 48px; }
     .header-actions { width: 100%; justify-content: flex-end; margin-left: 0; }
     .field-row { grid-template-columns: 1fr; }
+    .field-row-4 { grid-template-columns: 1fr 1fr; }
+    .more-details-badge { display: none; }
     .gallery-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 20px 12px; }
     .detail-modal-facts { grid-template-columns: repeat(2, 1fr); }
     .controls-actions { width: 100%; margin-left: 0; }

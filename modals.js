@@ -211,6 +211,8 @@ document.getElementById('modals-root').innerHTML = `
 
     <form id="recordForm">
       <input type="hidden" id="recordId">
+
+      <div class="form-section-label">Basics</div>
       <div class="field">
         <label>Album *</label>
         <input type="text" id="album" required autocomplete="new-password">
@@ -226,7 +228,7 @@ document.getElementById('modals-root').innerHTML = `
           <input type="text" id="coverUrl" placeholder="Fills in automatically from lookup, or paste your own">
         </div>
       </div>
-      <div class="field-row">
+      <div class="field-row field-row-4">
         <div class="field">
           <label>Year</label>
           <input type="text" id="year" placeholder="1971" inputmode="numeric">
@@ -235,8 +237,6 @@ document.getElementById('modals-root').innerHTML = `
           <label>Genre</label>
           <input type="text" id="genre" placeholder="Soul, Jazz, Rock…">
         </div>
-      </div>
-      <div class="field-row">
         <div class="field">
           <label>Format</label>
           <select id="format">
@@ -258,30 +258,18 @@ document.getElementById('modals-root').innerHTML = `
           </select>
         </div>
       </div>
-      <div class="field-row">
-        <div class="field">
-          <label>Release type</label>
-          <input type="text" id="releaseType" placeholder="Album, EP, Live, Compilation…">
-        </div>
-        <div class="field">
-          <label>Country</label>
-          <input type="text" id="country" placeholder="US, UK, JP…">
-        </div>
-      </div>
-      <div class="field-row">
-        <div class="field">
-          <label>Label</label>
-          <input type="text" id="label" placeholder="Blue Note, Sub Pop…">
-        </div>
-        <div class="field">
-          <label>Catalog #</label>
-          <input type="text" id="catalogNumber" placeholder="BST 84195">
-        </div>
-      </div>
+
+      <div class="form-section-label">Tracklist and notes</div>
       <div class="field">
         <label>Track listing</label>
         <textarea id="tracklist" rows="3" placeholder="Fills in automatically from lookup, or type your own — one track per line"></textarea>
       </div>
+      <div class="field">
+        <label>Notes</label>
+        <textarea id="notes" rows="2" placeholder="Pressing details, where you found it, dedication, etc."></textarea>
+      </div>
+
+      <div class="form-section-label">Purchase and value</div>
       <div class="field-row">
         <div class="field">
           <label>Purchase price ($)</label>
@@ -296,10 +284,34 @@ document.getElementById('modals-root').innerHTML = `
         <label>Estimated value ($)</label>
         <input type="text" id="estimatedValue" inputmode="decimal" placeholder="Optional — enter your own estimate">
       </div>
-      <div class="field">
-        <label>Notes</label>
-        <textarea id="notes" rows="2" placeholder="Pressing details, where you found it, dedication, etc."></textarea>
+
+      <button type="button" class="more-details-toggle" id="moreDetailsToggle" aria-expanded="false">
+        <span><i class="ti ti-chevron-right"></i>More details</span>
+        <span class="more-details-badge">Label, catalog #, country, release type</span>
+      </button>
+      <div class="more-details-panel" id="moreDetailsPanel" hidden>
+        <div class="field-row">
+          <div class="field">
+            <label>Release type</label>
+            <input type="text" id="releaseType" placeholder="Album, EP, Live, Compilation…">
+          </div>
+          <div class="field">
+            <label>Country</label>
+            <input type="text" id="country" placeholder="US, UK, JP…">
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Label</label>
+            <input type="text" id="label" placeholder="Blue Note, Sub Pop…">
+          </div>
+          <div class="field">
+            <label>Catalog #</label>
+            <input type="text" id="catalogNumber" placeholder="BST 84195">
+          </div>
+        </div>
       </div>
+
       <div class="modal-actions">
         <button type="button" class="btn btn-ghost" id="cancelBtn">Cancel</button>
         <button type="submit" class="btn btn-primary">Save Record</button>

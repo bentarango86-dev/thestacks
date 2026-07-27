@@ -466,6 +466,7 @@ async function searchMusicBrainz(query) {
           el('catalogNumber').value = details.catalogNumber;
           el('country').value = details.country;
           el('tracklist').value = details.tracklist;
+          if (details.label || details.catalogNumber || details.country) setMoreDetailsOpen(true);
         }
         resultsEl.innerHTML = art
           ? '<div class="lookup-status">Filled in below, cover art found — adjust anything, then save.</div>'
@@ -522,6 +523,7 @@ async function searchByBarcode(code) {
         el('catalogNumber').value = details.catalogNumber;
         el('country').value = details.country;
         el('tracklist').value = details.tracklist;
+        if (details.label || details.catalogNumber || details.country) setMoreDetailsOpen(true);
         resultsEl.innerHTML = '<div class="lookup-status">Filled in below — checking for cover art…</div>';
         const art = h.id ? await fetchCoverArt('release', h.id) : null;
         if (art) {
@@ -620,6 +622,14 @@ function updateCoverPreview() {
 el('coverUrl').addEventListener('input', updateCoverPreview);
 el('coverPreview').addEventListener('error', () => { el('coverPreview').style.display = 'none'; });
 
+function setMoreDetailsOpen(open) {
+  el('moreDetailsPanel').hidden = !open;
+  el('moreDetailsToggle').setAttribute('aria-expanded', open ? 'true' : 'false');
+}
+el('moreDetailsToggle').addEventListener('click', () => {
+  setMoreDetailsOpen(el('moreDetailsPanel').hidden);
+});
+
 function openModal(record) {
   form.reset();
   stopScanner();
@@ -650,9 +660,13 @@ function openModal(record) {
     el('catalogNumber').value = record.catalogNumber || '';
     el('tracklist').value = record.tracklist || '';
     updateCoverPreview();
+    // Auto-open "More details" if any of those fields already have data —
+    // nothing should look silently hidden when editing an existing record.
+    setMoreDetailsOpen(!!(record.releaseType || record.country || record.label || record.catalogNumber));
   } else {
     editingId = null;
     el('modalTitle').textContent = 'Add Record';
+    setMoreDetailsOpen(false);
   }
   overlay.classList.add('open');
   el('album').focus();
