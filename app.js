@@ -549,40 +549,78 @@ el('barcodeQuery').addEventListener('keydown', e => {
 });
 
 let scannerRunning = false;
+let scannerStream = null;
+let scannerVideoEl = null;
+let scannerRafId = null;
+let scannerDetector = null;
 
-function startScanner() {
+async function startScanner() {
+  if (scannerRunning) return;
   el('scannerBox').style.display = 'block';
   el('lookupResults').innerHTML = '';
-  if (typeof Quagga === 'undefined') {
+
+  if (typeof BarcodeDetector === 'undefined') {
     el('lookupResults').innerHTML = '<div class="lookup-status">Scanner library failed to load. Enter the barcode number manually above.</div>';
     el('scannerBox').style.display = 'none';
     return;
   }
-  Quagga.init({
-    inputStream: {
-      type: 'LiveStream',
-      target: document.querySelector('#scannerViewport'),
-      constraints: { facingMode: 'environment' }
-    },
-    decoder: {
-      readers: ['ean_reader', 'upc_reader', 'upc_e_reader']
-    },
-    locate: true
-  }, err => {
-    if (err) {
-      el('lookupResults').innerHTML = '<div class="lookup-status">Could not access camera. Check permissions, or enter the barcode manually above.</div>';
-      el('scannerBox').style.display = 'none';
-      return;
-    }
-    Quagga.start();
-    scannerRunning = true;
-  });
 
-  Quagga.onDetected(handleDetected);
+  try {
+    scannerStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment' }
+    });
+  } catch (err) {
+    el('lookupResults').innerHTML = '<div class="lookup-status">Could not access camera. Check permissions, or enter the barcode manually above.</div>';
+    el('scannerBox').style.display = 'none';
+    return;
+  }
+
+  scannerDetector = new BarcodeDetector({ formats: ['ean_13', 'upc_a', 'upc_e'] });
+
+  scannerVideoEl = document.createElement('video');
+  scannerVideoEl.autoplay = true;
+  scannerVideoEl.muted = true;
+  scannerVideoEl.playsInline = true; // required so iOS Safari doesn't force fullscreen playback
+  scannerVideoEl.style.cssText = 'width:100%; height:100%; object-fit:cover; display:block;';
+  scannerVideoEl.srcObject = scannerStream;
+
+  const viewport = document.querySelector('#scannerViewport');
+  viewport.innerHTML = '';
+  viewport.appendChild(scannerVideoEl);
+  await scannerVideoEl.play();
+
+  scannerRunning = true;
+  scanFrame();
 }
 
-function handleDetected(result) {
-  const code = result?.codeResult?.code;
+let scannerDetecting = false;
+
+function scanFrame() {
+  if (!scannerRunning) return;
+  if (!scannerDetecting) {
+    scannerDetecting = true;
+    scannerDetector.detect(scannerVideoEl)
+      .then(codes => {
+        scannerDetecting = false;
+        if (!scannerRunning) return;
+        if (codes.length && codes[0].rawValue) {
+          handleDetected(codes[0].rawValue);
+          return;
+        }
+        scannerRafId = requestAnimationFrame(scanFrame);
+      })
+      .catch(() => {
+        // A frame that fails to decode (e.g. camera still warming up) isn't
+        // fatal — just keep scanning rather than giving up on the session.
+        scannerDetecting = false;
+        if (scannerRunning) scannerRafId = requestAnimationFrame(scanFrame);
+      });
+  } else {
+    scannerRafId = requestAnimationFrame(scanFrame);
+  }
+}
+
+function handleDetected(code) {
   if (!code) return;
   stopScanner();
   el('barcodeQuery').value = code;
@@ -590,11 +628,21 @@ function handleDetected(result) {
 }
 
 function stopScanner() {
-  if (scannerRunning && typeof Quagga !== 'undefined') {
-    Quagga.offDetected(handleDetected);
-    Quagga.stop();
-    scannerRunning = false;
+  scannerRunning = false;
+  if (scannerRafId) {
+    cancelAnimationFrame(scannerRafId);
+    scannerRafId = null;
   }
+  if (scannerStream) {
+    scannerStream.getTracks().forEach(track => track.stop());
+    scannerStream = null;
+  }
+  if (scannerVideoEl) {
+    scannerVideoEl.srcObject = null;
+    scannerVideoEl = null;
+  }
+  const viewport = document.querySelector('#scannerViewport');
+  if (viewport) viewport.innerHTML = '';
   el('scannerBox').style.display = 'none';
 }
 
