@@ -57,7 +57,7 @@ document.getElementById('modals-root').innerHTML = `
   <div class="modal detail-modal">
     <div class="detail-modal-cover-wrap" id="detailCoverWrap">
       <img id="detailCover" src="" alt="" style="display:none;">
-      <div class="gallery-cover-fallback" id="detailCoverFallback"><i class="ti ti-music"></i></div>
+      <div class="gallery-cover-fallback" id="detailCoverFallback"><i class="ti ti-album"></i></div>
       <button type="button" class="detail-modal-nav prev" id="detailPrevBtn" title="Previous record" style="display:none;"><i class="ti ti-chevron-left"></i></button>
       <button type="button" class="detail-modal-nav next" id="detailNextBtn" title="Next record" style="display:none;"><i class="ti ti-chevron-right"></i></button>
     </div>

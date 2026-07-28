@@ -876,21 +876,11 @@ function renderGenreFilter() {
 }
 
 // ---- Shared genre → icon mapping (used by stacks tiles, gallery cards, detail modal) ----
+// A single consistent "sleeve" placeholder for any record without cover
+// art, rather than guessing a genre-specific instrument icon — this is
+// honestly just "no art on file," not a representation of the genre.
 function iconForGenre(genre) {
-  const g = (genre || '').toLowerCase();
-  const map = [
-    [['rock', 'grunge', 'punk', 'metal'], 'ti-guitar-pick'],
-    [['jazz', 'blues'], 'ti-piano'],
-    [['classical', 'orchestra'], 'ti-violin'],
-    [['electronic', 'techno', 'house', 'edm'], 'ti-wave-square'],
-    [['hip hop', 'rap'], 'ti-microphone-2'],
-    [['country', 'folk', 'americana'], 'ti-guitar-pick'],
-    [['soundtrack', 'score'], 'ti-movie'],
-  ];
-  for (const [keywords, icon] of map) {
-    if (keywords.some(k => g.includes(k))) return icon;
-  }
-  return 'ti-music';
+  return 'ti-album';
 }
 
 // ---- GALLERY CARD GRID (album-art-first browsing — replaces the old dense collector cards) ----

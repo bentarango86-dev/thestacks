@@ -338,7 +338,7 @@
     z-index: 2;
   }
 
-  .shelf { margin-bottom: 38px; }
+  .shelf { margin-bottom: 60px; }
   .shelf-label {
     display: flex;
     align-items: baseline;
@@ -368,7 +368,7 @@
 
   .shelf-row {
     display: flex;
-    gap: 12px;
+    gap: 18px;
     overflow-x: auto;
     padding: 12px 2px 0;
     scroll-snap-type: x proximity;
@@ -438,7 +438,7 @@
 
   .shelf-cover {
     flex: 0 0 auto;
-    width: 128px;
+    width: 144px;
     aspect-ratio: 1 / 1;
     scroll-snap-align: start;
     box-shadow:
@@ -495,7 +495,7 @@
   .shelf-cover-actions button i { font-size: 12px; }
 
   @media (max-width: 560px) {
-    .shelf-cover { width: 104px; }
+    .shelf-cover { width: 118px; }
     .shelf-arrow { width: 34px; font-size: 18px; }
   }
 

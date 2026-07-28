@@ -178,8 +178,8 @@ function renderFlatCrate() {
           return `
           <tr>
             <td style="cursor:pointer;" onclick='openDetailModal("${r.id}")'>${r.coverUrl
-              ? `<img class="thumb img-loading" src="${escapeAttr(r.coverUrl)}" alt="" loading="lazy" onload="this.classList.remove('img-loading')" onerror="this.outerHTML='<div class=&quot;thumb-fallback&quot;><i class=&quot;ti ti-music&quot;></i></div>'">`
-              : `<div class="thumb-fallback"><i class="ti ti-music"></i></div>`}</td>
+              ? `<img class="thumb img-loading" src="${escapeAttr(r.coverUrl)}" alt="" loading="lazy" onload="this.classList.remove('img-loading')" onerror="this.outerHTML='<div class=&quot;thumb-fallback&quot;><i class=&quot;ti ti-album&quot;></i></div>'">`
+              : `<div class="thumb-fallback"><i class="ti ti-album"></i></div>`}</td>
             <td class="cell-album" style="cursor:pointer;" onclick='openDetailModal("${r.id}")'>${escapeHtml(r.album)}</td>
             <td class="cell-artist">${escapeHtml(r.artist)}</td>
             <td class="cell-muted">${r.year || '—'}</td>
