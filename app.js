@@ -336,6 +336,7 @@ function mapRow(r) {
     releaseType: r.release_type || '',
     tracklist: r.tracklist || '',
     isFace: r.is_face || false,
+    isWishlist: r.is_wishlist || false,
     estimatedValue: r.estimated_value || 0
   };
 }
@@ -657,6 +658,22 @@ el('lookupQuery').addEventListener('keydown', e => {
   if (e.key === 'Enter') { e.preventDefault(); el('lookupBtn').click(); }
 });
 
+// ---- Wishlist / Owned status toggle in the Add/Edit form ----
+// Condition and purchase price/date don't apply to something you don't
+// own yet; Estimated Value is repurposed as Target Price for wishlist
+// items rather than adding a new column.
+function setRecordStatusMode(isWishlist) {
+  el('conditionFieldWrap').style.display = isWishlist ? 'none' : '';
+  el('basicsFieldRow').classList.toggle('field-row-4', !isWishlist);
+  el('basicsFieldRow').classList.toggle('field-row-3', isWishlist);
+  el('purchaseFieldsWrap').style.display = isWishlist ? 'none' : '';
+  el('estimatedValueLabel').textContent = isWishlist ? 'Target price ($)' : 'Estimated value ($)';
+  el('recordStatus').classList.toggle('status-wishlist', isWishlist);
+}
+el('recordStatus').addEventListener('change', () => {
+  setRecordStatusMode(el('recordStatus').value === 'wishlist');
+});
+
 function updateCoverPreview() {
   const url = el('coverUrl').value.trim();
   const img = el('coverPreview');
@@ -686,6 +703,8 @@ function openModal(record) {
   el('lookupResults').innerHTML = '';
   el('condition').value = 'VG';
   el('coverUrl').value = '';
+  el('recordStatus').value = 'owned';
+  setRecordStatusMode(false);
   updateCoverPreview();
   if (record) {
     editingId = record.id;
@@ -707,6 +726,8 @@ function openModal(record) {
     el('label').value = record.label || '';
     el('catalogNumber').value = record.catalogNumber || '';
     el('tracklist').value = record.tracklist || '';
+    el('recordStatus').value = record.isWishlist ? 'wishlist' : 'owned';
+    setRecordStatusMode(!!record.isWishlist);
     updateCoverPreview();
     // Auto-open "More details" if any of those fields already have data —
     // nothing should look silently hidden when editing an existing record.
@@ -728,6 +749,7 @@ overlay.addEventListener('click', e => { if (e.target === overlay) closeModal();
 
 form.addEventListener('submit', async e => {
   e.preventDefault();
+  const isWishlist = el('recordStatus').value === 'wishlist';
   const payload = {
     user_id: currentUser.id,
     album: el('album').value.trim(),
@@ -735,10 +757,10 @@ form.addEventListener('submit', async e => {
     year: el('year').value.trim(),
     genre: el('genre').value.trim(),
     format: el('format').value,
-    condition: el('condition').value,
-    price: parseFloat(el('price').value) || 0,
+    condition: isWishlist ? null : el('condition').value,
+    price: isWishlist ? null : (parseFloat(el('price').value) || 0),
     estimated_value: parseFloat(el('estimatedValue').value) || null,
-    purchase_date: el('purchaseDate').value || null,
+    purchase_date: isWishlist ? null : (el('purchaseDate').value || null),
     notes: el('notes').value.trim(),
     cover_url: el('coverUrl').value.trim() || null,
     release_type: el('releaseType').value.trim() || null,
@@ -746,6 +768,7 @@ form.addEventListener('submit', async e => {
     label: el('label').value.trim() || null,
     catalog_number: el('catalogNumber').value.trim() || null,
     tracklist: el('tracklist').value.trim() || null,
+    is_wishlist: isWishlist,
     added_at: editingId ? (records.find(r => r.id === editingId)?.addedAt || Date.now()) : Date.now()
   };
 
@@ -842,6 +865,10 @@ function refreshOpenDetailStar(id) {
 async function toggleFace(id) {
   const record = records.find(x => x.id === id);
   if (!record) return;
+  if (record.isWishlist) {
+    alert('Wishlist items can\'t be a stack cover — add it to your collection first.');
+    return;
+  }
   if (!record.genre) {
     alert('Give this record a genre before setting it as a stack cover — covers are picked per genre.');
     return;
@@ -884,14 +911,63 @@ async function toggleFace(id) {
   }
 }
 
+// ---- Add to collection (Wishlist -> Owned) ----
+// One-click flip, not a detour through the edit form — Condition/Purchase
+// details can be filled in later via the normal edit flow. `animated`
+// plays the shelf-to-shelf transition (only meaningful when called from
+// the Stacks page, where both the wishlist shelf and the destination
+// genre shelf are actually on screen); other callers (All Records row,
+// detail modal) just get the instant flip.
+async function moveToCollection(id, animated) {
+  const record = records.find(x => x.id === id);
+  if (!record || !record.isWishlist) return;
+  if (!record.genre) {
+    alert('Give this record a genre before adding it to your collection — shelves are organized by genre.');
+    return;
+  }
+
+  const applyFlipAndRender = async () => {
+    const previous = record.isWishlist;
+    record.isWishlist = false;
+    setCachedRecords(records);
+    renderPage();
+    if (animated) {
+      requestAnimationFrame(() => {
+        const node = document.querySelector('.gallery-cover-wrap[data-record-id="' + id + '"]');
+        if (node) node.classList.add('arriving');
+      });
+    }
+    const { error } = await sb.from('records').update({ is_wishlist: false }).eq('id', id);
+    if (error) {
+      record.isWishlist = previous;
+      setCachedRecords(records);
+      renderPage();
+      alert('Could not update this record: ' + error.message);
+    }
+  };
+
+  if (animated) {
+    const node = document.querySelector('.gallery-cover-wrap[data-record-id="' + id + '"]');
+    if (node) {
+      node.style.transition = 'opacity 0.35s ease, transform 0.35s ease';
+      node.style.opacity = '0';
+      node.style.transform = 'scale(0.85)';
+      setTimeout(applyFlipAndRender, 380);
+      return;
+    }
+  }
+  applyFlipAndRender();
+}
+
 function renderStats() {
   if (!el('stats')) return;
-  const total = records.length;
-  const hasAnyValue = records.some(r => r.estimatedValue > 0);
-  const value = records.reduce((sum, r) => sum + (r.estimatedValue || 0), 0);
-  const genres = new Set(records.map(r => r.genre).filter(Boolean)).size;
+  const owned = records.filter(r => !r.isWishlist);
+  const total = owned.length;
+  const hasAnyValue = owned.some(r => r.estimatedValue > 0);
+  const value = owned.reduce((sum, r) => sum + (r.estimatedValue || 0), 0);
+  const genres = new Set(owned.map(r => r.genre).filter(Boolean)).size;
   const decades = {};
-  records.forEach(r => {
+  owned.forEach(r => {
     const y = parseInt(r.year);
     if (y) {
       const d = Math.floor(y / 10) * 10 + 's';
@@ -1021,8 +1097,9 @@ function buildShelfCover(r, listKey, opts = {}) {
   const key = escapeAttr(JSON.stringify(listKey));
   const addedLabel = opts.featured ? relativeAddedLabel(r.addedAt) : null;
   return `
-    <div class="gallery-cover-wrap shelf-cover${opts.featured ? ' shelf-cover-featured' : ''}${r.coverUrl ? ' img-loading' : ''}" onclick='setShelfContext(${key}); handleGalleryTap(this, "${r.id}")'>
+    <div class="gallery-cover-wrap shelf-cover${opts.featured ? ' shelf-cover-featured' : ''}${r.coverUrl ? ' img-loading' : ''}" data-record-id="${r.id}" onclick='setShelfContext(${key}); handleGalleryTap(this, "${r.id}")'>
       ${coverHtml}
+      ${opts.wishlist ? '<div class="wishlist-badge" title="On your wishlist"><i class="ti ti-heart"></i></div>' : ''}
       ${addedLabel ? `<div class="shelf-added-badge">Added ${addedLabel}</div>` : ''}
       <div class="shelf-cover-overlay">
         <div class="shelf-cover-text">
@@ -1030,6 +1107,7 @@ function buildShelfCover(r, listKey, opts = {}) {
           <div class="shelf-cover-artist">${escapeHtml(r.artist)}</div>
         </div>
         <div class="shelf-cover-actions">
+          ${opts.wishlist ? `<button onclick='event.stopPropagation(); moveToCollection("${r.id}", true)' title="Add to collection"><i class="ti ti-check"></i>Add</button>` : ''}
           <button onclick='event.stopPropagation(); setShelfContext(${key}); openDetailModal("${r.id}")' title="View record"><i class="ti ti-eye"></i>View</button>
         </div>
       </div>
@@ -1141,9 +1219,10 @@ function openDetailModal(id) {
   ].filter(Boolean);
   el('detailMeta').innerHTML = metaLines.map(l => `<div title="${escapeAttr(l)}">${escapeHtml(l)}</div>`).join('');
 
-  el('detailCondition').textContent = r.condition || '—';
-  el('detailPrice').textContent = r.price ? '$' + r.price.toFixed(2) : '—';
+  el('detailCondition').textContent = r.isWishlist ? '—' : (r.condition || '—');
+  el('detailPrice').textContent = (!r.isWishlist && r.price) ? '$' + r.price.toFixed(2) : '—';
   el('detailValue').textContent = r.estimatedValue ? '$' + r.estimatedValue.toFixed(2) : '—';
+  el('detailValueLabel').textContent = r.isWishlist ? 'Target' : 'Est. Value';
 
   if (r.notes) {
     el('detailNotes').textContent = r.notes;
@@ -1164,9 +1243,12 @@ function openDetailModal(id) {
   const scrollEl = document.querySelector('#detailOverlay .detail-modal-scroll');
   if (scrollEl) scrollEl.style.display = (r.notes || tracks.length) ? 'block' : 'none';
 
+  el('detailStarBtn').style.display = r.isWishlist ? 'none' : 'flex';
   el('detailStarBtn').classList.toggle('active', !!r.isFace);
   el('detailStarLabel').textContent = r.isFace ? 'Stack cover' : 'Set as stack cover';
   el('detailStarBtn').onclick = () => { closeDetailMenu(); toggleFace(r.id); };
+  el('detailAddToCollectionBtn').style.display = r.isWishlist ? 'flex' : 'none';
+  el('detailAddToCollectionBtn').onclick = () => { closeDetailMenu(); el('detailOverlay').classList.remove('open'); moveToCollection(r.id, false); };
   el('detailEditBtn').onclick = () => { closeDetailMenu(); el('detailOverlay').classList.remove('open'); editRecord(r.id); };
 
   const hasNav = detailList.length > 1 && detailIndex > -1;
@@ -1223,8 +1305,9 @@ document.addEventListener('keydown', e => {
 });
 
 function openRandomRecord() {
-  if (!records.length) return;
-  const r = records[Math.floor(Math.random() * records.length)];
+  const owned = records.filter(r => !r.isWishlist);
+  if (!owned.length) return;
+  const r = owned[Math.floor(Math.random() * owned.length)];
   openDetailModal(r.id);
 }
 

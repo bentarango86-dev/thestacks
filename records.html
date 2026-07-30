@@ -57,6 +57,11 @@
     </div>
     <select id="filterGenre"><option value="">All genres</option></select>
     <select id="filterYear"><option value="">All years</option></select>
+    <select id="filterStatus">
+      <option value="">Owned and wishlist</option>
+      <option value="owned">Owned only</option>
+      <option value="wishlist">Wishlist only</option>
+    </select>
     <div class="controls-actions">
       <button type="button" class="btn btn-ghost" id="exportBtn"><i class="ti ti-download" style="font-size:15px; vertical-align:-2px; margin-right:5px;"></i>Export CSV</button>
       <button class="btn btn-primary" id="addBtn">+ Add Record</button>
@@ -123,13 +128,16 @@ function renderFlatCrate() {
   const search = el('search').value.toLowerCase();
   const genreFilter = el('filterGenre').value;
   const yearFilter = el('filterYear').value;
+  const statusFilter = el('filterStatus').value;
 
   let list = records.filter(r => {
     const matchesSearch = !search || recordMatchesQuery(r, search);
     const matchesGenre = !genreFilter ||
       (genreFilter === '__none__' ? !r.genre : r.genre === genreFilter);
     const matchesYear = !yearFilter || r.year === yearFilter;
-    return matchesSearch && matchesGenre && matchesYear;
+    const matchesStatus = !statusFilter ||
+      (statusFilter === 'wishlist' ? r.isWishlist : !r.isWishlist);
+    return matchesSearch && matchesGenre && matchesYear && matchesStatus;
   });
 
   const { key, dir } = tableSort;
@@ -180,7 +188,7 @@ function renderFlatCrate() {
             <td style="cursor:pointer;" onclick='openDetailModal("${r.id}")'>${r.coverUrl
               ? `<img class="thumb img-loading" src="${escapeAttr(r.coverUrl)}" alt="" loading="lazy" onload="this.classList.remove('img-loading')" onerror="this.outerHTML='<div class=&quot;thumb-fallback&quot;><i class=&quot;ti ti-album&quot;></i></div>'">`
               : `<div class="thumb-fallback"><i class="ti ti-album"></i></div>`}</td>
-            <td class="cell-album" style="cursor:pointer;" onclick='openDetailModal("${r.id}")'>${escapeHtml(r.album)}</td>
+            <td class="cell-album" style="cursor:pointer;" onclick='openDetailModal("${r.id}")'>${escapeHtml(r.album)}${r.isWishlist ? ' <span class="wishlist-chip">Wishlist</span>' : ''}</td>
             <td class="cell-artist">${escapeHtml(r.artist)}</td>
             <td class="cell-muted">${r.year || '—'}</td>
             <td>${r.genre ? `<span class="meta-chip">${escapeHtml(r.genre)}</span>` : '<span class="cell-muted">—</span>'}</td>
@@ -190,7 +198,9 @@ function renderFlatCrate() {
             <td class="cell-muted">${escapeHtml(r.label || '—')}</td>
             <td>${tracks.length ? `<button class="row-btn" onclick='openTrackModal("${r.id}")' title="View track listing"><i class="ti ti-list-details" style="vertical-align:-2px;"></i> ${tracks.length}</button>` : ''}</td>
             <td class="row-actions-cell">
-              <button class="row-btn star ${r.isFace ? 'active' : ''}" onclick='toggleFace("${r.id}")' title="${r.isFace ? 'Stack cover' : 'Set as stack cover'}"><i class="ti ti-star"></i></button>
+              ${r.isWishlist
+                ? `<button class="row-btn" onclick='moveToCollection("${r.id}", false)' title="Add to collection"><i class="ti ti-check"></i></button>`
+                : `<button class="row-btn star ${r.isFace ? 'active' : ''}" onclick='toggleFace("${r.id}")' title="${r.isFace ? 'Stack cover' : 'Set as stack cover'}"><i class="ti ti-star"></i></button>`}
               <button class="row-btn" onclick='editRecord("${r.id}")' title="Edit"><i class="ti ti-pencil"></i></button>
               <button class="row-btn danger" onclick='deleteRecord("${r.id}")' title="Delete"><i class="ti ti-trash"></i></button>
             </td>
@@ -228,6 +238,7 @@ el('search').addEventListener('input', debounce(renderFlatCrate, 150));
 wireSearchClear('search', 'searchClear', renderFlatCrate);
 el('filterGenre').addEventListener('change', renderFlatCrate);
 el('filterYear').addEventListener('change', renderFlatCrate);
+el('filterStatus').addEventListener('change', renderFlatCrate);
 
 // Arrived here from a stack tile (?genre=) or the homepage search's
 // "refine with filters" link (?q=) — pre-apply whichever was passed.

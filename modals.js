@@ -70,6 +70,7 @@ document.getElementById('modals-root').innerHTML = `
         <div class="detail-modal-menu-wrap">
           <button type="button" class="detail-modal-menu-btn" id="detailMenuBtn" title="More" aria-haspopup="true" aria-expanded="false"><i class="ti ti-dots"></i></button>
           <div class="detail-modal-menu" id="detailMenu" hidden>
+            <button type="button" class="detail-menu-item" id="detailAddToCollectionBtn" style="display:none;"><i class="ti ti-check"></i>Add to collection</button>
             <button type="button" class="detail-menu-item" id="detailStarBtn"><i class="ti ti-star"></i><span id="detailStarLabel">Set as stack cover</span></button>
             <button type="button" class="detail-menu-item" id="detailEditBtn"><i class="ti ti-pencil"></i>Edit</button>
             <button type="button" class="detail-menu-item" id="detailCloseBtn"><i class="ti ti-x"></i>Close</button>
@@ -80,7 +81,7 @@ document.getElementById('modals-root').innerHTML = `
       <div class="detail-modal-facts">
         <div class="fact"><div class="fv" id="detailCondition">—</div><div class="fl">Condition</div></div>
         <div class="fact"><div class="fv" id="detailPrice">—</div><div class="fl">Paid</div></div>
-        <div class="fact"><div class="fv" id="detailValue">—</div><div class="fl">Est. Value</div></div>
+        <div class="fact"><div class="fv" id="detailValue">—</div><div class="fl" id="detailValueLabel">Est. Value</div></div>
       </div>
       <div class="detail-modal-scroll">
         <div class="detail-modal-notes" id="detailNotesWrap" style="display:none;">
@@ -212,6 +213,14 @@ document.getElementById('modals-root').innerHTML = `
     <form id="recordForm">
       <input type="hidden" id="recordId">
 
+      <div class="field">
+        <label>Status</label>
+        <select id="recordStatus">
+          <option value="owned">I own this</option>
+          <option value="wishlist">On my wishlist</option>
+        </select>
+      </div>
+
       <div class="form-section-label">Basics</div>
       <div class="field">
         <label>Album *</label>
@@ -228,14 +237,14 @@ document.getElementById('modals-root').innerHTML = `
           <input type="text" id="coverUrl" placeholder="Fills in automatically from lookup, or paste your own">
         </div>
       </div>
-      <div class="field-row field-row-4">
+      <div class="field-row field-row-4" id="basicsFieldRow">
         <div class="field">
           <label>Year</label>
           <input type="text" id="year" placeholder="1971" inputmode="numeric">
         </div>
         <div class="field">
-          <label>Genre</label>
-          <input type="text" id="genre" placeholder="Soul, Jazz, Rock…">
+          <label>Genre *</label>
+          <input type="text" id="genre" placeholder="Soul, Jazz, Rock…" required>
         </div>
         <div class="field">
           <label>Format</label>
@@ -248,7 +257,7 @@ document.getElementById('modals-root').innerHTML = `
             <option>CD</option>
           </select>
         </div>
-        <div class="field">
+        <div class="field" id="conditionFieldWrap">
           <label>Condition</label>
           <select id="condition">
             <option value="M">Mint (M)</option>
@@ -270,7 +279,7 @@ document.getElementById('modals-root').innerHTML = `
       </div>
 
       <div class="form-section-label">Purchase and value</div>
-      <div class="field-row">
+      <div class="field-row" id="purchaseFieldsWrap">
         <div class="field">
           <label>Purchase price ($)</label>
           <input type="text" id="price" inputmode="decimal" placeholder="0.00">
@@ -281,7 +290,7 @@ document.getElementById('modals-root').innerHTML = `
         </div>
       </div>
       <div class="field">
-        <label>Estimated value ($)</label>
+        <label id="estimatedValueLabel">Estimated value ($)</label>
         <input type="text" id="estimatedValue" inputmode="decimal" placeholder="Optional — enter your own estimate">
       </div>
 

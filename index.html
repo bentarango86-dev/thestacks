@@ -96,6 +96,19 @@
   </div>
 
   <div id="shelvesContainer"></div>
+
+  <div class="shelf" id="wishlistShelf" style="display:none;">
+    <div class="shelf-label">
+      <h3>Wishlist</h3>
+      <span class="shelf-count" id="wishlistCount"></span>
+    </div>
+    <div class="shelf-body">
+      <button type="button" class="shelf-arrow prev" aria-label="Scroll left" hidden onclick="scrollShelf(this, -1)"><i class="ti ti-chevron-left"></i></button>
+      <div class="shelf-row" id="wishlistRow"></div>
+      <button type="button" class="shelf-arrow next" aria-label="Scroll right" hidden onclick="scrollShelf(this, 1)"><i class="ti ti-chevron-right"></i></button>
+    </div>
+    <div class="shelf-ledge"></div>
+  </div>
   </div>
 </div>
 
@@ -165,7 +178,8 @@ document.querySelectorAll('.sort-menu-item').forEach(btn => {
 
 function renderShelves() {
   const container = el('shelvesContainer');
-  if (records.length === 0) {
+  const owned = records.filter(r => !r.isWishlist);
+  if (owned.length === 0) {
     container.innerHTML = `
       <button type="button" class="empty-state-cta" onclick="openModal(null)">
         <i class="ti ti-plus"></i>
@@ -175,7 +189,7 @@ function renderShelves() {
   }
 
   const groups = {};
-  records.forEach(r => {
+  owned.forEach(r => {
     const key = r.genre || '__none__';
     (groups[key] = groups[key] || []).push(r);
   });
@@ -217,7 +231,7 @@ function renderShelves() {
 }
 
 function renderRecentlyAdded() {
-  const recent = [...records].sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0)).slice(0, 10);
+  const recent = records.filter(r => !r.isWishlist).sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0)).slice(0, 10);
   if (recent.length === 0) {
     el('recentlyAddedShelf').style.display = 'none';
     return;
@@ -226,18 +240,32 @@ function renderRecentlyAdded() {
   buildShelfRow(el('recentlyAddedRow'), recent, 'recentlyAdded', { featured: true });
 }
 
+// ---- WISHLIST SHELF (flat row, not grouped by genre) ----
+function renderWishlistShelf() {
+  const wishlist = records.filter(r => r.isWishlist).sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0));
+  if (wishlist.length === 0) {
+    el('wishlistShelf').style.display = 'none';
+    return;
+  }
+  el('wishlistShelf').style.display = 'block';
+  el('wishlistCount').textContent = `${wishlist.length} record${wishlist.length === 1 ? '' : 's'}`;
+  buildShelfRow(el('wishlistRow'), wishlist, 'wishlist', { wishlist: true });
+}
+
 // ---- SEARCH (primary navigation on the homepage) ----
 function renderSearchResults() {
   const q = el('homeSearch').value.trim().toLowerCase();
+  const owned = records.filter(r => !r.isWishlist);
   if (!q) {
     el('searchResultsSection').style.display = 'none';
-    el('recentlyAddedShelf').style.display = records.length ? 'block' : 'none';
+    el('recentlyAddedShelf').style.display = owned.length ? 'block' : 'none';
     el('shelvesContainer').style.display = 'block';
     return true; // no query — caller should render the normal homepage
   }
-  const matches = records.filter(r => recordMatchesQuery(r, q));
+  const matches = owned.filter(r => recordMatchesQuery(r, q));
   el('recentlyAddedShelf').style.display = 'none';
   el('shelvesContainer').style.display = 'none';
+  el('wishlistShelf').style.display = 'none';
   el('searchResultsSection').style.display = 'block';
   el('searchResultsHeading').innerHTML = `
     ${matches.length} result${matches.length === 1 ? '' : 's'}
@@ -264,7 +292,8 @@ el('continueBtn').addEventListener('click', e => {
 
 function renderPage() {
   renderStats();
-  el('homeSearch').placeholder = `Search within your ${records.length} record${records.length === 1 ? '' : 's'}`;
+  const ownedCount = records.filter(r => !r.isWishlist).length;
+  el('homeSearch').placeholder = `Search within your ${ownedCount} record${ownedCount === 1 ? '' : 's'}`;
 
   const lastGenre = loadLastGenre();
   const lastGenreStillExists = lastGenre && records.some(r => (r.genre || '') === lastGenre || (lastGenre === '__none__' && !r.genre));
@@ -279,6 +308,7 @@ function renderPage() {
   if (renderSearchResults()) {
     renderRecentlyAdded();
     renderShelves();
+    renderWishlistShelf();
   }
 }
 </script>
