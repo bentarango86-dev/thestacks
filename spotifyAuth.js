@@ -13,7 +13,7 @@
  *    doesn't use a client secret).
  */
 
-const CLIENT_ID = "YOUR_SPOTIFY_CLIENT_ID"; // <-- fill in from the dashboard
+const CLIENT_ID = "456e40d0e6df45faac3eec20ce6ea1e9"; // <-- fill in from the dashboard
 const REDIRECT_URI = window.location.origin + "/spotify-callback.html";
 const SCOPES = ["playlist-modify-private", "playlist-modify-public"];
 
