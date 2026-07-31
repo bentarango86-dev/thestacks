@@ -116,6 +116,7 @@
 
 <script src="modals.js"></script>
 <script src="app.js"></script>
+<script src="spotify-integration.js"></script>
 <script>
 // ---- STACKS PAGE ----
 // (iconForGenre, buildShelfRow/buildShelfCover, openDetailModal live in app.js — shared with records.html)
@@ -211,6 +212,7 @@ function renderShelves() {
         <div class="shelf-label" id="shelfLabel-${escapeAttr(genre)}">
           <h3>${escapeHtml(label)}</h3>
           <span class="shelf-count">${list.length} record${list.length === 1 ? '' : 's'}</span>
+          <button type="button" class="icon-btn shelf-spotify-btn" style="margin-left:auto;" title="Send to Spotify" onclick='runSpotifyExport(this, ${JSON.stringify(genre)})'><i class="ti ti-brand-spotify"></i></button>
         </div>
         <div class="shelf-body">
           <button type="button" class="shelf-arrow prev" aria-label="Scroll left" hidden onclick="scrollShelf(this, -1)"><i class="ti ti-chevron-left"></i></button>
@@ -228,6 +230,16 @@ function renderShelves() {
     const sorted = [...list].sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0));
     buildShelfRow(document.getElementById('shelfRow-' + genre), sorted, genre);
   });
+
+  // If we're returning from a Spotify login redirect mid-export, resume now
+  // that the shelf (and its button) actually exists in the DOM.
+  if (pendingSpotifyResumeGenre) {
+    const genre = pendingSpotifyResumeGenre;
+    pendingSpotifyResumeGenre = null;
+    const labelEl = el('shelfLabel-' + genre);
+    const btn = labelEl ? labelEl.querySelector('.shelf-spotify-btn') : null;
+    runSpotifyExport(btn, genre);
+  }
 }
 
 function renderRecentlyAdded() {
@@ -289,6 +301,62 @@ el('continueBtn').addEventListener('click', e => {
   void label.offsetWidth; // restart the animation if it's already been triggered once
   label.classList.add('flash');
 });
+
+// ---- Spotify export ----
+// Genre to resume exporting once shelves re-render after an OAuth redirect
+// (read once at load, consumed by renderShelves() the next time it runs).
+let pendingSpotifyResumeGenre = new URLSearchParams(window.location.search).get('spotifyResumeGenre');
+if (pendingSpotifyResumeGenre) {
+  const url = new URL(window.location.href);
+  url.searchParams.delete('spotifyResumeGenre');
+  window.history.replaceState({}, '', url); // keep refreshes from re-triggering
+}
+
+async function runSpotifyExport(btn, genre) {
+  if (!SpotifyExport.isLoggedIn()) {
+    SpotifyExport.redirectToAuth(genre); // leaves the page, comes back via spotify-callback.html
+    return;
+  }
+
+  const label = genre === '__none__' ? 'No genre' : genre;
+  const list = records.filter(r => !r.isWishlist && (genre === '__none__' ? !r.genre : r.genre === genre));
+
+  const originalHtml = btn ? btn.innerHTML : null;
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="ti ti-loader-2"></i>';
+  }
+
+  try {
+    const result = await SpotifyExport.buildPlaylist({
+      stackName: `${label} Stack`,
+      records: list,
+      onProgress: ({ albumsDone, albumsTotal, tracksAdded }) => {
+        if (btn) btn.title = `Adding ${albumsDone}/${albumsTotal} albums · ${tracksAdded} tracks…`;
+      },
+    });
+
+    if (result.unmatched.length > 0) {
+      console.warn('Tracks Spotify could not match:', result.unmatched);
+    }
+
+    const msg = result.unmatched.length > 0
+      ? `Playlist created — ${result.tracksAdded} tracks added, ${result.unmatched.length} couldn't be matched (see console).`
+      : `Playlist created — ${result.tracksAdded} tracks added.`;
+
+    alert(msg); // fine for MVP; swap for a nicer toast later
+    window.open(result.playlistUrl, '_blank');
+  } catch (err) {
+    console.error(err);
+    alert('Something went wrong building the playlist. Check the console for details.');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = originalHtml;
+      btn.title = 'Send to Spotify';
+    }
+  }
+}
 
 function renderPage() {
   renderStats();
