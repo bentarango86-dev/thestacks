@@ -49,9 +49,9 @@ const SpotifyExport = (() => {
     const verifier = generateRandomString(64);
     const challenge = base64UrlEncode(await sha256(verifier));
 
-    sessionStorage.setItem(STORAGE_KEYS.verifier, verifier);
+    localStorage.setItem(STORAGE_KEYS.verifier, verifier);
     if (resumeGenre) {
-      sessionStorage.setItem(STORAGE_KEYS.pendingExportGenre, resumeGenre);
+      localStorage.setItem(STORAGE_KEYS.pendingExportGenre, resumeGenre);
     }
 
     const params = new URLSearchParams({
@@ -77,11 +77,12 @@ const SpotifyExport = (() => {
     }
     if (!code) return { success: false };
 
-    const verifier = sessionStorage.getItem(STORAGE_KEYS.verifier);
+    const verifier = localStorage.getItem(STORAGE_KEYS.verifier);
     if (!verifier) {
       console.error("Missing PKCE verifier — auth flow was not initiated correctly.");
       return { success: false };
     }
+    localStorage.removeItem(STORAGE_KEYS.verifier);
 
     const body = new URLSearchParams({
       client_id: CLIENT_ID,
@@ -105,8 +106,8 @@ const SpotifyExport = (() => {
     const data = await res.json();
     storeTokens(data);
 
-    const resumeGenre = sessionStorage.getItem(STORAGE_KEYS.pendingExportGenre);
-    sessionStorage.removeItem(STORAGE_KEYS.pendingExportGenre);
+    const resumeGenre = localStorage.getItem(STORAGE_KEYS.pendingExportGenre);
+    localStorage.removeItem(STORAGE_KEYS.pendingExportGenre);
     return { success: true, resumeGenre };
   }
 
