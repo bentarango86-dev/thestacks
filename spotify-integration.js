@@ -189,6 +189,14 @@ const SpotifyExport = (() => {
     return overlap / Math.max(targetTokens.size, 1);
   }
 
+  // Adaptive throttle: shared across all requests in this session. Grows
+  // when we hit 429s, eases back down gradually when requests succeed —
+  // rather than guessing a single fixed delay that's either too slow when
+  // it doesn't need to be, or (as we saw) too fast to stay under the limit.
+  let throttleMs = 150;
+  const THROTTLE_MIN = 150;
+  const THROTTLE_MAX = 4000;
+
   async function findTrackUri(accessToken, artist, album, title, retryCount = 0) {
     const query = `track:${title} artist:${artist}`;
     const url = `${API}/search?${new URLSearchParams({ q: query, type: "track", limit: "5" })}`;
@@ -196,6 +204,7 @@ const SpotifyExport = (() => {
     const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
 
     if (res.status === 429) {
+      throttleMs = Math.min(throttleMs * 2, THROTTLE_MAX);
       if (retryCount >= 5) {
         console.warn(`Rate limited repeatedly on "${title}" by ${artist} — skipping it.`);
         return null;
@@ -208,6 +217,10 @@ const SpotifyExport = (() => {
       await new Promise((r) => setTimeout(r, backoffMs));
       return findTrackUri(accessToken, artist, album, title, retryCount + 1);
     }
+
+    // Ease the throttle back down slowly on a clean response, so a rough
+    // patch doesn't permanently slow down the rest of a long export.
+    throttleMs = Math.max(THROTTLE_MIN, throttleMs * 0.95);
 
     if (!res.ok) return null;
 
@@ -279,9 +292,9 @@ const SpotifyExport = (() => {
         const uri = await findTrackUri(accessToken, record.artist, record.album, title);
         if (uri) allUris.push(uri);
         else unmatched.push({ artist: record.artist, album: record.album, title });
-        // Small throttle between requests — cheap insurance against tripping
-        // the rate limit in the first place, especially on large stacks.
-        await new Promise((r) => setTimeout(r, 80));
+        // Adaptive throttle — starts fast, automatically slows down if the
+        // API starts pushing back, eases up again once things are clean.
+        await new Promise((r) => setTimeout(r, throttleMs));
       }
       albumsDone++;
       onProgress?.({
