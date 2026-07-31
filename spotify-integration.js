@@ -10,7 +10,7 @@
 
 const SpotifyExport = (() => {
   // ---- Config ----
-  const CLIENT_ID = "YOUR_SPOTIFY_CLIENT_ID"; // <-- fill in from the dashboard
+  const CLIENT_ID = "456e40d0e6df45faac3eec20ce6ea1e9"; // <-- fill in from the dashboard
   const REDIRECT_URI = window.location.origin + window.location.pathname.replace(/[^/]*$/, "") + "spotify-callback.html";
   const SCOPES = ["playlist-modify-private", "playlist-modify-public"];
   const API = "https://api.spotify.com/v1";
