@@ -10,7 +10,7 @@
 
 const SpotifyExport = (() => {
   // ---- Config ----
-  const CLIENT_ID = "456e40d0e6df45faac3eec20ce6ea1e9"; // <-- fill in from the dashboard
+  const CLIENT_ID = "YOUR_SPOTIFY_CLIENT_ID"; // <-- fill in from the dashboard
   const REDIRECT_URI = window.location.origin + window.location.pathname.replace(/[^/]*$/, "") + "spotify-callback.html";
   const SCOPES = ["playlist-modify-private", "playlist-modify-public"];
   const API = "https://api.spotify.com/v1";
@@ -219,14 +219,10 @@ const SpotifyExport = (() => {
     return bestScore < 0.4 ? null : best.uri;
   }
 
-  async function getCurrentUserId(accessToken) {
-    const res = await fetch(`${API}/me`, { headers: { Authorization: `Bearer ${accessToken}` } });
-    if (!res.ok) throw new Error("Failed to fetch current Spotify user");
-    return (await res.json()).id;
-  }
-
-  async function createPlaylist(accessToken, userId, name, description) {
-    const res = await fetch(`${API}/users/${userId}/playlists`, {
+  // Spotify's February 2026 Dev Mode migration removed POST /users/{id}/playlists
+  // in favor of POST /me/playlists — no user ID needed at all anymore.
+  async function createPlaylist(accessToken, name, description) {
+    const res = await fetch(`${API}/me/playlists`, {
       method: "POST",
       headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
       body: JSON.stringify({ name, description, public: false }),
@@ -235,10 +231,11 @@ const SpotifyExport = (() => {
     return await res.json();
   }
 
+  // Also renamed in the Feb 2026 migration: /playlists/{id}/tracks → /playlists/{id}/items
   async function addTracksToPlaylist(accessToken, playlistId, uris) {
     for (let i = 0; i < uris.length; i += 100) {
       const batch = uris.slice(i, i + 100);
-      const res = await fetch(`${API}/playlists/${playlistId}/tracks`, {
+      const res = await fetch(`${API}/playlists/${playlistId}/items`, {
         method: "POST",
         headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
         body: JSON.stringify({ uris: batch }),
@@ -257,10 +254,8 @@ const SpotifyExport = (() => {
     const accessToken = await getValidAccessToken();
     if (!accessToken) throw new Error("Not logged in to Spotify.");
 
-    const userId = await getCurrentUserId(accessToken);
     const playlist = await createPlaylist(
       accessToken,
-      userId,
       stackName,
       "Built from The Stacks — your personal record ledger."
     );
