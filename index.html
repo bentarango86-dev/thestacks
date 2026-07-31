@@ -12,6 +12,108 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="shared.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/3.44.0/tabler-icons.min.css">
+<style>
+  /* Hover-reveal play button on each shelf label */
+  .shelf-label { position: relative; }
+  .shelf-play-btn {
+    opacity: 0.28;
+    transition: opacity 0.18s ease, transform 0.18s ease;
+    background: var(--ink, #0c2340);
+    color: #fff;
+    border: none;
+    border-radius: 999px;
+    width: 34px;
+    height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    margin-left: auto;
+    flex-shrink: 0;
+    font-size: 15px;
+  }
+  .shelf-label:hover .shelf-play-btn,
+  .shelf-play-btn:focus-visible {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+  @media (hover: none) {
+    .shelf-play-btn { opacity: 0.55; }
+  }
+  .shelf-play-btn:disabled { opacity: 1; cursor: default; }
+
+  /* Playlist-building overlay */
+  .spotify-overlay-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(12,35,64,0.55);
+    display: none;
+    align-items: center; justify-content: center;
+    z-index: 1000;
+    padding: 20px;
+  }
+  .spotify-overlay-card {
+    background: #faf3e8;
+    border-radius: 14px;
+    padding: 32px 28px;
+    max-width: 340px;
+    width: 100%;
+    text-align: center;
+    position: relative;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  }
+  .spotify-overlay-close {
+    position: absolute; top: 8px; right: 10px;
+    background: none; border: none; font-size: 20px;
+    color: var(--ink); cursor: pointer; line-height: 1;
+    padding: 6px;
+  }
+  .spotify-overlay-eyebrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;
+    color: rgba(12,35,64,0.55);
+    margin: 0 0 6px;
+  }
+  .spotify-overlay-genre {
+    font-family: 'Fraunces', serif;
+    font-weight: 700; font-size: 24px;
+    color: var(--ink); margin: 0 0 6px;
+  }
+  .spotify-overlay-meta {
+    font-size: 13px; color: rgba(12,35,64,0.6);
+    margin: 0 0 20px;
+  }
+  .spotify-progress-track {
+    display: flex; gap: 4px; justify-content: center; flex-wrap: wrap;
+  }
+  .spotify-progress-block {
+    width: 16px; height: 8px; border-radius: 2px;
+    background: rgba(12,35,64,0.12);
+    transition: background 0.25s ease;
+  }
+  .spotify-progress-block.filled { background: #1DB954; }
+  .spotify-overlay-check {
+    width: 48px; height: 48px; border-radius: 50%;
+    background: #1DB954; color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; margin: 0 auto 14px;
+    animation: spotifyCheckPop 0.3s ease;
+  }
+  @keyframes spotifyCheckPop {
+    from { transform: scale(0.5); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+  .spotify-overlay-status {
+    font-family: 'Fraunces', serif; font-weight: 700; font-size: 18px;
+    color: var(--ink); margin: 0 0 16px;
+  }
+  .spotify-overlay-fallback-link {
+    display: inline-block; font-size: 13px;
+    color: rgba(12,35,64,0.6); text-decoration: underline;
+  }
+  .spotify-overlay-error-detail {
+    font-size: 13px; color: rgba(12,35,64,0.6); margin: 0 0 16px;
+  }
+</style>
 </head>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://fastly.jsdelivr.net/npm/barcode-detector@3.2.0/dist/iife/polyfill.min.js"></script>
@@ -212,7 +314,7 @@ function renderShelves() {
         <div class="shelf-label" id="shelfLabel-${escapeAttr(genre)}">
           <h3>${escapeHtml(label)}</h3>
           <span class="shelf-count">${list.length} record${list.length === 1 ? '' : 's'}</span>
-          <button type="button" class="icon-btn shelf-spotify-btn" style="margin-left:auto;" title="Send to Spotify" onclick='runSpotifyExport(this, ${JSON.stringify(genre)})'><i class="ti ti-brand-spotify"></i></button>
+          <button type="button" class="shelf-play-btn" title="Play this stack on Spotify" onclick='runSpotifyExport(this, ${JSON.stringify(genre)})'><i class="ti ti-player-play-filled"></i></button>
         </div>
         <div class="shelf-body">
           <button type="button" class="shelf-arrow prev" aria-label="Scroll left" hidden onclick="scrollShelf(this, -1)"><i class="ti ti-chevron-left"></i></button>
@@ -237,7 +339,7 @@ function renderShelves() {
     const genre = pendingSpotifyResumeGenre;
     pendingSpotifyResumeGenre = null;
     const labelEl = el('shelfLabel-' + genre);
-    const btn = labelEl ? labelEl.querySelector('.shelf-spotify-btn') : null;
+    const btn = labelEl ? labelEl.querySelector('.shelf-play-btn') : null;
     runSpotifyExport(btn, genre);
   }
 }
@@ -312,6 +414,62 @@ if (pendingSpotifyResumeGenre) {
   window.history.replaceState({}, '', url); // keep refreshes from re-triggering
 }
 
+// ---- Spotify export overlay ----
+function ensureSpotifyOverlay() {
+  let backdrop = document.getElementById('spotifyOverlayBackdrop');
+  if (backdrop) return backdrop;
+  backdrop = document.createElement('div');
+  backdrop.className = 'spotify-overlay-backdrop';
+  backdrop.id = 'spotifyOverlayBackdrop';
+  backdrop.innerHTML = `
+    <div class="spotify-overlay-card">
+      <button type="button" class="spotify-overlay-close" id="spotifyOverlayClose" aria-label="Close">&times;</button>
+      <div id="spotifyOverlayBody"></div>
+    </div>
+  `;
+  document.body.appendChild(backdrop);
+  backdrop.addEventListener('click', e => { if (e.target === backdrop) closeSpotifyOverlay(); });
+  document.getElementById('spotifyOverlayClose').addEventListener('click', closeSpotifyOverlay);
+  return backdrop;
+}
+
+function openSpotifyOverlay() {
+  ensureSpotifyOverlay().style.display = 'flex';
+}
+
+function closeSpotifyOverlay() {
+  const backdrop = document.getElementById('spotifyOverlayBackdrop');
+  if (backdrop) backdrop.style.display = 'none';
+}
+
+function renderSpotifyBuildingState(label, albumCount, trackTotal, filledSegments, totalSegments) {
+  const blocks = Array.from({ length: totalSegments }, (_, i) =>
+    `<div class="spotify-progress-block${i < filledSegments ? ' filled' : ''}"></div>`
+  ).join('');
+  document.getElementById('spotifyOverlayBody').innerHTML = `
+    <p class="spotify-overlay-eyebrow">Building playlist…</p>
+    <h3 class="spotify-overlay-genre">${escapeHtml(label)}</h3>
+    <p class="spotify-overlay-meta">${albumCount} album${albumCount === 1 ? '' : 's'} · ${trackTotal} track${trackTotal === 1 ? '' : 's'}</p>
+    <div class="spotify-progress-track">${blocks}</div>
+  `;
+}
+
+function renderSpotifySuccessState(playlistUrl) {
+  document.getElementById('spotifyOverlayBody').innerHTML = `
+    <div class="spotify-overlay-check"><i class="ti ti-check"></i></div>
+    <p class="spotify-overlay-status">Opening Spotify…</p>
+    <a href="${playlistUrl}" target="_blank" class="spotify-overlay-fallback-link">Didn't open? Tap here</a>
+  `;
+}
+
+function renderSpotifyErrorState(message) {
+  document.getElementById('spotifyOverlayBody').innerHTML = `
+    <p class="spotify-overlay-status">Couldn't build the playlist</p>
+    <p class="spotify-overlay-error-detail">${escapeHtml(message)}</p>
+    <button type="button" class="btn btn-ghost" onclick="closeSpotifyOverlay()">Close</button>
+  `;
+}
+
 async function runSpotifyExport(btn, genre) {
   if (!SpotifyExport.isLoggedIn()) {
     SpotifyExport.redirectToAuth(genre); // leaves the page, comes back via spotify-callback.html
@@ -320,21 +478,20 @@ async function runSpotifyExport(btn, genre) {
 
   const label = genre === '__none__' ? 'No genre' : genre;
   const list = records.filter(r => !r.isWishlist && (genre === '__none__' ? !r.genre : r.genre === genre));
+  const trackTotal = list.reduce((sum, r) => sum + SpotifyExport.parseTracklist(r.tracklist).length, 0);
+  const totalSegments = Math.min(list.length, 24) || 1;
 
-  const originalHtml = btn ? btn.innerHTML : null;
-  if (btn) {
-    btn.disabled = true;
-    btn.innerHTML = '<i class="ti ti-loader-2"></i>';
-  }
-
-  let succeeded = false;
+  if (btn) btn.disabled = true;
+  openSpotifyOverlay();
+  renderSpotifyBuildingState(label, list.length, trackTotal, 0, totalSegments);
 
   try {
     const result = await SpotifyExport.buildPlaylist({
       stackName: `${label} Stack`,
       records: list,
-      onProgress: ({ albumsDone, albumsTotal, tracksAdded }) => {
-        if (btn) btn.title = `Adding ${albumsDone}/${albumsTotal} albums · ${tracksAdded} tracks…`;
+      onProgress: ({ albumsDone, albumsTotal }) => {
+        const filled = Math.round((albumsDone / albumsTotal) * totalSegments);
+        renderSpotifyBuildingState(label, list.length, trackTotal, filled, totalSegments);
       },
     });
 
@@ -342,35 +499,26 @@ async function runSpotifyExport(btn, genre) {
       console.warn('Tracks Spotify could not match:', result.unmatched);
     }
 
-    const msg = result.unmatched.length > 0
-      ? `Playlist created — ${result.tracksAdded} tracks added, ${result.unmatched.length} couldn't be matched (see console).`
-      : `Playlist created — ${result.tracksAdded} tracks added.`;
+    renderSpotifySuccessState(result.playlistUrl);
 
-    alert(msg);
-
-    // Don't auto-open: iOS only hands off to the native Spotify app for a
-    // direct, synchronous tap. By this point we're several `await`s past the
-    // original click, so window.open() here would just open a plain Safari
-    // tab instead. Swapping the button for a real link lets the user's own
-    // tap trigger the handoff properly.
-    if (btn) {
-      btn.innerHTML = '<a href="' + result.playlistUrl + '" target="_blank" style="color:inherit; text-decoration:none;">Open Playlist<i class="ti ti-external-link" style="margin-left:4px;"></i></a>';
-      btn.title = 'Open Playlist';
-    }
-    succeeded = true;
+    // Best-effort auto-open. On iOS this may just open the web player instead
+    // of the native app (or do nothing at all) since we're a couple of
+    // `await`s past the original tap — the fallback link above covers that,
+    // and the overlay closing on its own leaves no dead-end state either way.
+    setTimeout(() => {
+      window.location.href = result.playlistUrl;
+    }, 550);
+    setTimeout(() => {
+      closeSpotifyOverlay();
+      if (btn) btn.disabled = false;
+    }, 4000);
   } catch (err) {
     console.error(err);
-    alert('Something went wrong building the playlist. Check the console for details.');
-  } finally {
-    if (btn) {
-      btn.disabled = false;
-      if (!succeeded) {
-        btn.innerHTML = originalHtml;
-        btn.title = 'Send to Spotify';
-      }
-    }
+    renderSpotifyErrorState(err.message || 'Please try again.');
+    if (btn) btn.disabled = false;
   }
 }
+
 
 function renderPage() {
   renderStats();
