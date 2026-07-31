@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Connecting to Spotify…</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      background: #faf3e8;
+      color: #1a1a2e;
+    }
+  </style>
+</head>
+<body>
+  <p id="status">Connecting to Spotify…</p>
+
+  <script type="module">
+    import { handleSpotifyRedirect } from "./spotifyAuth.js";
+
+    handleSpotifyRedirect().then((success) => {
+      const status = document.getElementById("status");
+      if (success) {
+        status.textContent = "Connected! Redirecting…";
+        // Adjust this path to wherever your main app lives
+        window.location.href = "/";
+      } else {
+        status.textContent = "Something went wrong connecting to Spotify. Please try again.";
+      }
+    });
+  </script>
+</body>
+</html>

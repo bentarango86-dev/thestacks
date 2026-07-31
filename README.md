@@ -1,74 +1,93 @@
-# The Stacks
+# Spotify Export MVP — Integration Guide
 
-A personal vinyl record collection tracker. Installable PWA, MusicBrainz-powered lookup (name search + barcode scanning), Supabase backend for accounts and cross-device sync.
+Three files:
+- `spotifyAuth.js` — PKCE login flow, token storage/refresh
+- `spotifyExport.js` — tracklist parsing, search matching, playlist creation
+- `spotify-callback.html` — the redirect target after Spotify login
 
-For how to *use* the app, see [USER_GUIDE.md](./USER_GUIDE.md). This file is for maintaining/redeploying it.
+## 1. Register your app with Spotify
 
-## Stack
+1. Go to https://developer.spotify.com/dashboard → **Create app**.
+2. App name/description: anything (e.g. "The Stacks").
+3. Redirect URI: add both, so it works locally and in prod:
+   - `http://127.0.0.1:5173/spotify-callback.html` (adjust port to your dev server)
+   - `https://<yourusername>.github.io/<repo>/spotify-callback.html`
+4. Check the box for **Web API**.
+5. Save, then copy the **Client ID** shown on the app's settings page.
+6. Paste it into `CLIENT_ID` at the top of `spotifyAuth.js`.
 
-- **Frontend:** single-file vanilla HTML/CSS/JS (`index.html`) — no build step, no framework
-- **Backend:** [Supabase](https://supabase.com) — Postgres database + Auth (email/password + TOTP MFA), Row Level Security scopes each user to their own records
-- **Lookups:** [MusicBrainz API](https://musicbrainz.org/doc/MusicBrainz_API) (name + barcode search, release/tracklist/label data), [Cover Art Archive](https://coverartarchive.org/) (cover images)
-- **Barcode scanning:** [QuaggaJS](https://serratus.github.io/quaggaJS/) (camera-based UPC/EAN decoding)
-- **Hosting:** [Netlify](https://netlify.com) (static hosting, drag-and-drop deploy)
+No client secret is needed — PKCE is designed so the Client ID is safe to
+ship in your static frontend.
 
-## Files
+## 2. Drop the files in
 
+Copy `spotifyAuth.js`, `spotifyExport.js`, and `spotify-callback.html` into
+your project (e.g. `/src/lib/spotify/` and `spotify-callback.html` at your
+site root, or wherever your router can serve it as a real page).
+
+## 3. Wire up the "Play This Stack" modal
+
+```js
+import { redirectToSpotifyAuth, isLoggedInToSpotify } from "./spotifyAuth.js";
+import { buildSpotifyPlaylist } from "./spotifyExport.js";
+
+// Step 1: "Spotify" button in your modal
+function onClickSpotify() {
+  if (!isLoggedInToSpotify()) {
+    redirectToSpotifyAuth(); // leaves the page, comes back via spotify-callback.html
+    return;
+  }
+  runExport();
+}
+
+// Step 2: after login (or immediately, if already logged in)
+async function runExport() {
+  const records = getCurrentStackRecords(); // however you already fetch a stack's records
+
+  const result = await buildSpotifyPlaylist({
+    stackName: `${currentStackName} Stack`,
+    records, // needs { artist, album, tracklist } per record
+    onProgress: ({ albumsDone, albumsTotal, tracksAdded, currentAlbum }) => {
+      // update your "Adding X albums • Y tracks" progress UI here
+      setProgress({ albumsDone, albumsTotal, tracksAdded, currentAlbum });
+    },
+  });
+
+  // Step 3: show the "Open in Spotify" / "View in Spotify" buttons
+  setPlaylistUrl(result.playlistUrl);
+
+  if (result.unmatched.length > 0) {
+    console.warn("Tracks Spotify couldn't match:", result.unmatched);
+    // Consider surfacing this in the UI, e.g. "138 of 143 tracks added — 5 couldn't be found"
+  }
+}
 ```
-index.html          The Stacks page — genre piles, landing page
-records.html        The All Records page — sortable/filterable table
-shared.css          Shared styles, used by both pages
-app.js              Shared logic: auth, MFA, CRUD, lookups, scanner, modals
-modals.js           Shared modal HTML (login, MFA, Help, Security, Add Record), injected at load
-manifest.json       PWA manifest (name, icons, theme color, display mode)
-service-worker.js   Offline caching for the app shell
-setup.sql           Database schema + Row Level Security policies
-logo.png            App logo, used in the header
-icon-192.png        PWA icon (small)
-icon-512.png        PWA icon (large)
-USER_GUIDE.md        End-user instructions
-```
 
-## Redeploying after a change
+## Notes / known limitations for this MVP
 
-1. Unzip the updated project folder.
-2. Go to your Netlify site's dashboard → drag the folder onto the deploy area (or use `netlify deploy` CLI if you've set that up).
-3. If the change touched `index.html`, `manifest.json`, or the icons, **bump `CACHE_NAME` in `service-worker.js`** (e.g. `the-stacks-v9`) — otherwise returning users' browsers may keep serving a stale cached version. This has bitten us before; don't skip it.
-4. On your own phone, fully close the installed app and reopen it (not just a refresh) to confirm the update actually landed.
+- **Matching quality depends on `tracklist` data being present and clean.**
+  Records with no tracklist are silently skipped (no tracks to search for).
+  Worth surfacing "N albums had no tracklist" in the UI, same as we found
+  with the rock CSV export (6 albums had none).
+- **Self-titled / live / deluxe albums** are the most likely source of bad
+  matches. The scoring in `findTrackUri` weights album-name match to reduce
+  this, but it's not bulletproof — the `unmatched` + a low-confidence list
+  would be a good v2 addition (e.g. flag matches under some score threshold
+  for manual review instead of auto-including them).
+- **Rate limits**: Search runs one request per track, sequentially. For a
+  143-track stack that's 143 requests — fine for an MVP, but for very large
+  stacks (your "whole collection" case) consider adding a small delay or
+  parallelizing in controlled batches (e.g. 5 concurrent) to speed it up
+  without tripping Spotify's rate limiter.
+- **Token storage** uses `localStorage` for simplicity. Fine for a personal
+  single-user PWA like this; if "The Stacks" ever becomes multi-user in a way
+  where the browser is shared, revisit this.
 
-## Supabase project
+## Suggested v2 ideas (not built here)
 
-- **Project ref:** `jqtibmsqlzcagydnnwpg`
-- **Region:** Canada Central
-- The live `SUPABASE_URL` and publishable key are already hard-coded near the top of `index.html`'s `<script>` block. If you ever rotate keys or spin up a fresh project, that's the only place they need updating.
-- `setup.sql` is the source of truth for schema — if you rebuild the project from scratch, run it in the SQL Editor. It's kept in sync with the live schema, but if you ever apply a migration directly (via SQL Editor or the MCP connector) without updating this file, they'll drift — worth doing both at once.
-
-### Schema (`records` table)
-
-| Column | Type | Notes |
-|---|---|---|
-| `id` | uuid | primary key |
-| `user_id` | uuid | FK to `auth.users`, enforced by RLS |
-| `album`, `artist` | text | required |
-| `year`, `genre`, `format`, `condition` | text | |
-| `price` | numeric | |
-| `purchase_date` | date | |
-| `notes` | text | |
-| `cover_url` | text | image URL, either from Cover Art Archive or pasted manually |
-| `label`, `catalog_number`, `country`, `release_type` | text | from MusicBrainz release-level data |
-| `tracklist` | text | newline-separated, human-readable |
-| `is_face` | boolean | marks which record is the visual "cover" of its genre's stack — only one `true` per genre per user, enforced in app logic, not a DB constraint |
-| `added_at` | bigint | epoch ms, drives "recently added" sort |
-| `created_at` | timestamptz | row insert time |
-
-### Auth / URL configuration
-
-If the app's domain ever changes (new Netlify site, custom domain, etc.), update **Authentication → URL Configuration** in the Supabase dashboard — both **Site URL** and **Redirect URLs**. This is what confirmation emails and auth redirects point to; forgetting this step is why sign-up confirmation links have broken before.
-
-## Known limitations / things to keep in mind
-
-- **MFA has no recovery codes.** Supabase's TOTP implementation doesn't generate backup codes — losing the authenticator app means losing access to that account.
-- **MusicBrainz/Cover Art Archive coverage is inconsistent**, especially for obscure or older pressings. Manual entry is always the fallback.
-- **Stack "layers" are capped at 3** regardless of how many records are in a genre — a badge shows the real count once a genre passes 9 records.
-- **Signup is currently open** — anyone with the link can create an account. Fine for a small friends-and-family scale; if that changes, disable public sign-ups in Supabase Auth settings and invite people manually instead.
-- **Supabase free tier** comfortably covers personal/small-group use (500MB database). Worth revisiting if this ever grows beyond a handful of users.
+- Surface unmatched/low-confidence tracks in the UI so you can fix `tracklist`
+  data or manually search in Spotify.
+- Cache search results by `artist+title` in Supabase so re-exporting the same
+  stack doesn't re-search tracks you've already matched.
+- "Export Stack" (CSV) button can stay as the Apple Music / YouTube Music
+  fallback path until those integrations exist.
