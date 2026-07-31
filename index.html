@@ -11,189 +11,199 @@
 <meta name="apple-mobile-web-app-title" content="The Stacks">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="shared.css">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/3.44.0/tabler-icons.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/3.1.0/iconfont/tabler-icons.min.css">
 </head>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://fastly.jsdelivr.net/npm/barcode-detector@3.2.0/dist/iife/polyfill.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
 <body>
 <div class="wrap">
+<header>
+<img src="logo.png" alt="The Stacks" class="logo-mark">
+<div class="titles">
+<h1>The Stacks</h1>
+<p>your personal record ledger</p>
+</div>
+<div class="header-actions">
+<span id="userEmail" style="font-family:'IBM Plex Mono',monospace; font-size:11px; color:rgba(12,35,64,0.55);"></span>
+<button class="btn btn-ghost" id="helpBtn" style="display:none;"><i class="ti ti-help-circle" style="font-size:15px; vertical-align:-2px; margin-right:3px;"></i>Help</button>
+<button class="btn btn-ghost" id="securityBtn" style="display:none;"><i class="ti ti-shield-lock" style="font-size:15px; vertical-align:-2px; margin-right:3px;"></i>Security</button>
+<button class="btn btn-ghost" id="signOutBtn" style="display:none;">Sign out</button>
+</div>
+</header>
 
-  <header>
-    <img src="logo.png" alt="The Stacks" class="logo-mark">
-    <div class="titles">
-      <h1>The Stacks</h1>
-      <p>your personal record ledger</p>
-    </div>
-    <div class="header-actions">
-      <div class="profile-menu-wrap" id="profileMenuWrap">
-        <button type="button" class="profile-card-btn" id="profileMenuBtn" aria-haspopup="true" aria-expanded="false">
-          <span class="profile-avatar" id="profileAvatar"></span>
-          <span id="profileName"></span>
-          <i class="ti ti-chevron-down profile-caret"></i>
-        </button>
-        <div class="profile-menu" id="profileMenu" hidden>
-          <button type="button" class="detail-menu-item" id="helpBtn"><i class="ti ti-help-circle"></i>Help</button>
-          <button type="button" class="detail-menu-item" id="securityBtn"><i class="ti ti-shield-lock"></i>Security</button>
-          <button type="button" class="detail-menu-item" id="exportBtn"><i class="ti ti-download"></i>Export CSV</button>
-          <div class="profile-menu-divider"></div>
-          <button type="button" class="detail-menu-item" id="signOutBtn"><i class="ti ti-logout"></i>Sign out</button>
-        </div>
-      </div>
-    </div>
-  </header>
+<div id="appBody" style="display:none;">
+<div class="stats" id="stats"></div>
 
-  <div id="appBody" style="display:none;">
+<div class="view-tabs">
+<a href="index.html" class="tab-btn active"><i class="ti ti-stack-2" style="font-size:15px; vertical-align:-2px; margin-right:4px;"></i>Stacks</a>
+<a href="records.html" class="tab-btn"><i class="ti ti-list" style="font-size:15px; vertical-align:-2px; margin-right:4px;"></i>All Records</a>
+</div>
 
-  <div class="view-tabs">
-    <a href="index.html" class="tab-btn active"><i class="ti ti-stack-2" style="font-size:15px; vertical-align:-2px; margin-right:4px;"></i>Stacks</a>
-    <a href="records.html" class="tab-btn"><i class="ti ti-list" style="font-size:15px; vertical-align:-2px; margin-right:4px;"></i>All Records</a>
-  </div>
+<div class="controls" id="stacksControls">
+<select id="stackSortBy">
+<option value="genre-asc">Genre A–Z</option>
+<option value="count-desc">Most records</option>
+<option value="count-asc">Fewest records</option>
+</select>
+<button class="btn btn-primary" id="addBtn" style="margin-left:auto;">+ Add Record</button>
+</div>
 
-  <div class="home-search-row" id="homeSearchRow">
-    <div class="home-search-wrap">
-      <i class="ti ti-search"></i>
-      <input type="text" id="homeSearch" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false">
-      <button type="button" class="search-clear-btn" id="homeSearchClear" title="Clear search"><i class="ti ti-x"></i></button>
-    </div>
-    <div class="quick-row" id="homeQuickRow">
-      <button type="button" class="chip-btn" id="randomBtn"><i class="ti ti-dice-5"></i>Random Record</button>
-      <a href="#" class="chip-btn" id="continueBtn" style="display:none;"><i class="ti ti-history"></i><span id="continueLabel"></span></a>
-      <div class="quick-row-right">
-        <div class="sort-menu-wrap" id="sortMenuWrap">
-          <button type="button" class="icon-btn" id="sortMenuBtn" title="Sort stacks" aria-haspopup="true" aria-expanded="false"><i class="ti ti-arrows-sort"></i></button>
-          <div class="sort-menu" id="sortMenu" hidden>
-            <button type="button" class="sort-menu-item" data-sort="genre-asc">Genre A–Z</button>
-            <button type="button" class="sort-menu-item" data-sort="count-desc">Most records</button>
-            <button type="button" class="sort-menu-item" data-sort="count-asc">Fewest records</button>
-          </div>
-        </div>
-        <button class="btn btn-primary" id="addBtn">+ Add Record</button>
-      </div>
-    </div>
-  </div>
+<div class="controls" id="drillControls" style="display:none;">
+<a href="index.html" class="btn btn-ghost"><i class="ti ti-arrow-left" style="vertical-align:-2px; margin-right:3px;"></i>All Genres</a>
+<select id="drillSortBy">
+<option value="added-desc">Recently added</option>
+<option value="artist-asc">Artist A–Z</option>
+<option value="year-desc">Year (newest)</option>
+<option value="year-asc">Year (oldest)</option>
+<option value="value-desc">Value (high–low)</option>
+</select>
+<button class="btn btn-ghost" id="spotifyExportBtn"><i class="ti ti-brand-spotify" style="vertical-align:-2px; margin-right:3px;"></i>Send to Spotify</button>
+<button class="btn btn-primary" id="addBtnDrill" style="margin-left:auto;">+ Add Record</button>
+</div>
 
-  <div class="loading-state" id="loadingState">
-    <div class="loading-spinner"></div>
-    <span>Loading your collection…</span>
-  </div>
+<div id="recentlyAddedSection" style="margin-bottom:28px;">
+<h2 style="font-family:'Fraunces',serif; font-weight:700; font-size:16px; color:var(--ink); margin-bottom:12px;">Recently Added</h2>
+<div id="recentlyAddedRow" style="display:flex; gap:14px; overflow-x:auto; padding-bottom:4px;"></div>
+</div>
 
-  <div id="searchResultsSection" style="display:none;">
-    <h2 class="section-heading" id="searchResultsHeading"></h2>
-    <div class="gallery-grid" id="searchResultsGrid"></div>
-  </div>
+<div class="stacks-grid" id="stacksGrid"></div>
 
-  <div class="new-arrivals-panel" id="recentlyAddedShelf">
-    <div class="new-arrivals-sign">
-      <span class="new-arrivals-tag">New Arrivals</span>
-      <span class="new-arrivals-subtitle">Fresh off the shelf</span>
-    </div>
-    <div class="shelf-body">
-      <button type="button" class="shelf-arrow prev" aria-label="Scroll left" hidden onclick="scrollShelf(this, -1)"><i class="ti ti-chevron-left"></i></button>
-      <div class="shelf-row" id="recentlyAddedRow"></div>
-      <button type="button" class="shelf-arrow next" aria-label="Scroll right" hidden onclick="scrollShelf(this, 1)"><i class="ti ti-chevron-right"></i></button>
-    </div>
-    <div class="shelf-ledge"></div>
-  </div>
-
-  <div id="shelvesContainer"></div>
-
-  <div class="shelf" id="wishlistShelf" style="display:none;">
-    <div class="shelf-label">
-      <h3>Wishlist</h3>
-      <span class="shelf-count" id="wishlistCount"></span>
-    </div>
-    <div class="shelf-body">
-      <button type="button" class="shelf-arrow prev" aria-label="Scroll left" hidden onclick="scrollShelf(this, -1)"><i class="ti ti-chevron-left"></i></button>
-      <div class="shelf-row" id="wishlistRow"></div>
-      <button type="button" class="shelf-arrow next" aria-label="Scroll right" hidden onclick="scrollShelf(this, 1)"><i class="ti ti-chevron-right"></i></button>
-    </div>
-    <div class="shelf-ledge"></div>
-  </div>
-  </div>
+<h2 id="drillHeading" style="display:none; font-family:'Fraunces',serif; font-weight:700; font-size:22px; color:var(--ink); margin-bottom:16px;"></h2>
+<div class="drill-grid" id="drillCards" style="display:none;"></div>
+</div>
 </div>
 
 <div id="modals-root"></div>
-
 <script src="modals.js"></script>
 <script src="app.js"></script>
+<script src="spotify-integration.js"></script>
 <script>
 // ---- STACKS PAGE ----
-// (iconForGenre, buildShelfRow/buildShelfCover, openDetailModal live in app.js — shared with records.html)
-// Everything renders in place now — no drill page, no navigation away from
-// this screen just to look inside a genre.
 
-function saveLastGenre(genre) {
-  if (genre === 'recentlyAdded') return; // not a real shelf — nothing to "continue browsing" to
-  try { localStorage.setItem('stacks:lastGenre', genre); } catch (e) { /* non-fatal */ }
-}
-function loadLastGenre() {
-  try { return localStorage.getItem('stacks:lastGenre'); } catch (e) { return null; }
+function iconForGenre(genre) {
+  const g = (genre || '').toLowerCase();
+  const map = [
+    [['rock', 'grunge', 'punk', 'metal'], 'ti-guitar-pick'],
+    [['jazz', 'blues'], 'ti-piano'],
+    [['classical', 'orchestra'], 'ti-violin'],
+    [['electronic', 'techno', 'house', 'edm'], 'ti-wave-square'],
+    [['hip hop', 'rap'], 'ti-microphone-2'],
+    [['country', 'folk', 'americana'], 'ti-guitar-pick'],
+    [['soundtrack', 'score'], 'ti-movie'],
+  ];
+  for (const [keywords, icon] of map) {
+    if (keywords.some(k => g.includes(k))) return icon;
+  }
+  return 'ti-music';
 }
 
-// ---- Sort persistence (survives reloads) ----
+// Drilling into a stack stays on this page (index.html?genre=X) rather than
+// jumping to the All Records table — it's part of the Stacks browsing
+// experience, not the spreadsheet view.
+function exploreGenre(genre) {
+  window.location.href = 'index.html?genre=' + encodeURIComponent(genre);
+}
+
+const urlParams = new URLSearchParams(window.location.search);
+const drillGenre = urlParams.get('genre');
+
+// ---- Sort persistence (survives reloads and navigation) ----
+
 function loadSavedSort(key, fallback) {
-  try { return localStorage.getItem(key) || fallback; } catch (e) { return fallback; }
+  try {
+    const saved = localStorage.getItem(key);
+    return saved || fallback;
+  } catch (e) { return fallback; }
 }
+
 function saveSort(key, value) {
   try { localStorage.setItem(key, value); } catch (e) { /* private browsing etc — non-fatal */ }
 }
 
-// ---- Stack sort: small icon-triggered menu instead of a standalone
-// dropdown bar, so it reads as a minor view option, not a primary control. ----
-let stackSort = loadSavedSort('stacks:stackSort', 'genre-asc');
+el('stackSortBy').value = loadSavedSort('stacks:stackSort', 'genre-asc');
+el('drillSortBy').value = loadSavedSort('stacks:drillSort', 'artist-asc');
 
-function openSortMenu() {
-  el('sortMenu').hidden = false;
-  el('sortMenuBtn').setAttribute('aria-expanded', 'true');
-}
-function closeSortMenu() {
-  el('sortMenu').hidden = true;
-  el('sortMenuBtn').setAttribute('aria-expanded', 'false');
-}
-function setStackSort(value) {
-  stackSort = value;
-  saveSort('stacks:stackSort', value);
-  document.querySelectorAll('.sort-menu-item').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.sort === value);
-  });
-  closeSortMenu();
-  renderShelves();
-}
-el('sortMenuBtn').addEventListener('click', e => {
-  e.stopPropagation();
-  if (el('sortMenu').hidden) openSortMenu(); else closeSortMenu();
+el('stackSortBy').addEventListener('change', () => {
+  saveSort('stacks:stackSort', el('stackSortBy').value);
+  renderStacksGrid();
 });
-document.addEventListener('click', e => {
-  if (!el('sortMenu').hidden && !el('sortMenu').contains(e.target) && e.target !== el('sortMenuBtn')) {
-    closeSortMenu();
+
+el('drillSortBy').addEventListener('change', () => {
+  saveSort('stacks:drillSort', el('drillSortBy').value);
+  renderDrillCards();
+});
+
+el('addBtnDrill').addEventListener('click', () => openModal(null));
+
+// ---- Spotify export wiring ----
+
+el('spotifyExportBtn')?.addEventListener('click', () => {
+  runSpotifyExport(drillGenre);
+});
+
+// If we just came back from the Spotify login redirect, auto-resume the export
+if (sessionStorage.getItem('stacks_spotify_just_connected') && drillGenre) {
+  sessionStorage.removeItem('stacks_spotify_just_connected');
+  runSpotifyExport(drillGenre);
+}
+
+async function runSpotifyExport(genre) {
+  if (!genre) return;
+
+  if (!SpotifyExport.isLoggedIn()) {
+    SpotifyExport.redirectToAuth(genre); // leaves the page, comes back via spotify-callback.html
+    return;
   }
-});
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape' && !el('sortMenu').hidden) closeSortMenu();
-});
-document.querySelectorAll('.sort-menu-item').forEach(btn => {
-  btn.classList.toggle('active', btn.dataset.sort === stackSort);
-  btn.addEventListener('click', () => setStackSort(btn.dataset.sort));
-});
 
-function renderShelves() {
-  const container = el('shelvesContainer');
-  const owned = records.filter(r => !r.isWishlist);
-  if (owned.length === 0) {
-    container.innerHTML = `
-      <button type="button" class="empty-state-cta" onclick="openModal(null)">
-        <i class="ti ti-plus"></i>
-        The crate is empty — add your first record
-      </button>`;
+  const list = records.filter(r => genre === '__none__' ? !r.genre : r.genre === genre);
+  const label = genre === '__none__' ? 'No genre' : genre;
+  const btn = el('spotifyExportBtn');
+  const originalText = btn.innerHTML;
+
+  btn.disabled = true;
+  btn.textContent = 'Building playlist…';
+
+  try {
+    const result = await SpotifyExport.buildPlaylist({
+      stackName: `${label} Stack`,
+      records: list,
+      onProgress: ({ albumsDone, albumsTotal, tracksAdded }) => {
+        btn.textContent = `Adding ${albumsDone}/${albumsTotal} albums · ${tracksAdded} tracks…`;
+      },
+    });
+
+    if (result.unmatched.length > 0) {
+      console.warn('Tracks Spotify could not match:', result.unmatched);
+    }
+
+    const msg = result.unmatched.length > 0
+      ? `Playlist created — ${result.tracksAdded} tracks added, ${result.unmatched.length} couldn't be matched (see console).`
+      : `Playlist created — ${result.tracksAdded} tracks added.`;
+
+    alert(msg); // fine for MVP; swap for a nicer toast/modal later
+    window.open(result.playlistUrl, '_blank');
+  } catch (err) {
+    console.error(err);
+    alert('Something went wrong building the playlist. Check the console for details.');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = originalText;
+  }
+}
+
+function renderStacksGrid() {
+  if (records.length === 0) {
+    el('stacksGrid').innerHTML = `<div class="empty-state" style="grid-column:1/-1;">The crate is empty. Add your first record.</div>`;
     return;
   }
 
   const groups = {};
-  owned.forEach(r => {
+  records.forEach(r => {
     const key = r.genre || '__none__';
     (groups[key] = groups[key] || []).push(r);
   });
 
+  const stackSort = el('stackSortBy').value;
   const entries = Object.entries(groups).sort((a, b) => {
     if (a[0] === '__none__') return 1;
     if (b[0] === '__none__') return -1;
@@ -204,111 +214,172 @@ function renderShelves() {
     }
   });
 
-  container.innerHTML = entries.map(([genre, list]) => {
+  el('stacksGrid').innerHTML = entries.map(([genre, list]) => {
+    // Respect an explicit star, but otherwise prefer any record that
+    // actually has cover art over just taking whichever came first —
+    // a genre shouldn't show a blank tile when art exists in the group.
+    const face = list.find(r => r.isFace) || list.find(r => r.coverUrl) || list[0];
     const label = genre === '__none__' ? 'No genre' : genre;
+    const fallbackHtml = `<div class="face-fallback"><i class="ti ${iconForGenre(genre)}"></i></div>`;
+    const faceInner = face.coverUrl
+      ? `<img src="${escapeAttr(face.coverUrl)}" alt="" loading="lazy" onerror="this.parentElement.innerHTML='${fallbackHtml.replace(/"/g, '&quot;').replace(/'/g, "\\'")}'">`
+      : fallbackHtml;
+
+    // Pick real records for the back layers, preferring ones with cover art
+    // so the stack reflects what's actually in the genre, not filler.
+    // Layer count scales with how many records are actually in the genre —
+    // bigger piles look bigger, capped at 3 back layers so it never gets messy.
+    const layerCount = list.length >= 50 ? 3 : list.length >= 10 ? 2 : list.length >= 3 ? 1 : 0;
+    const others = list.filter(r => r.id !== face.id);
+    const withArt = others.filter(r => r.coverUrl);
+    const withoutArt = others.filter(r => !r.coverUrl);
+    const backLayers = [...withArt, ...withoutArt].slice(0, layerCount);
+
+    const sleeveInner = r => r && r.coverUrl
+      ? `<img src="${escapeAttr(r.coverUrl)}" alt="" loading="lazy" onerror="this.parentElement.innerHTML=''">`
+      : '';
+
+    const badge = list.length > 9
+      ? `<div class="stack-badge">${list.length > 99 ? '99+' : list.length}</div>`
+      : '';
+
     return `
-      <section class="shelf">
-        <div class="shelf-label" id="shelfLabel-${escapeAttr(genre)}">
+      <div class="stack-tile" onclick='exploreGenre(${JSON.stringify(genre)})'>
+        <div class="stack-visual">
+          ${backLayers[2] ? `<div class="stack-sleeve s4">${sleeveInner(backLayers[2])}</div>` : ''}
+          ${backLayers[1] ? `<div class="stack-sleeve s3">${sleeveInner(backLayers[1])}</div>` : ''}
+          ${backLayers[0] ? `<div class="stack-sleeve s2">${sleeveInner(backLayers[0])}</div>` : ''}
+          <div class="stack-sleeve face-sleeve">${faceInner}</div>
+          ${badge}
+        </div>
+        <div class="stack-label">
           <h3>${escapeHtml(label)}</h3>
-          <span class="shelf-count">${list.length} record${list.length === 1 ? '' : 's'}</span>
+          <div class="stack-count">${list.length} record${list.length === 1 ? '' : 's'}</div>
         </div>
-        <div class="shelf-body">
-          <button type="button" class="shelf-arrow prev" aria-label="Scroll left" hidden onclick="scrollShelf(this, -1)"><i class="ti ti-chevron-left"></i></button>
-          <div class="shelf-row" id="shelfRow-${escapeAttr(genre)}"></div>
-          <button type="button" class="shelf-arrow next" aria-label="Scroll right" hidden onclick="scrollShelf(this, 1)"><i class="ti ti-chevron-right"></i></button>
-        </div>
-        <div class="shelf-ledge"></div>
-      </section>
+      </div>
     `;
   }).join('');
 
-  // Newest records toward the front of each shelf — flipping through feels
-  // like the crate itself, not an alphabetized catalog.
-  entries.forEach(([genre, list]) => {
-    const sorted = [...list].sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0));
-    buildShelfRow(document.getElementById('shelfRow-' + genre), sorted, genre);
+  armLazyImageTimeouts(el('stacksGrid'));
+}
+
+function renderDrillCards() {
+  const list = records.filter(r => drillGenre === '__none__' ? !r.genre : r.genre === drillGenre);
+  const label = drillGenre === '__none__' ? 'No genre' : drillGenre;
+  el('drillHeading').textContent = `${label} — ${list.length} record${list.length === 1 ? '' : 's'}`;
+
+  const sortBy = el('drillSortBy').value;
+  list.sort((a, b) => {
+    switch (sortBy) {
+      case 'artist-asc': return a.artist.localeCompare(b.artist);
+      case 'year-desc': return (parseInt(b.year)||0) - (parseInt(a.year)||0);
+      case 'year-asc': return (parseInt(a.year)||0) - (parseInt(b.year)||0);
+      case 'value-desc': return (b.price||0) - (a.price||0);
+      default: return (b.addedAt||0) - (a.addedAt||0);
+    }
   });
+
+  if (list.length === 0) {
+    el('drillCards').innerHTML = `<div class="empty-state">No records in this genre yet.</div>`;
+    return;
+  }
+
+  el('drillCards').innerHTML = list.map(r => {
+    const tracks = r.tracklist ? r.tracklist.split('\n').filter(Boolean) : [];
+    const coverHtml = r.coverUrl
+      ? `<img class="collector-cover" src="${escapeAttr(r.coverUrl)}" alt="" loading="lazy" onerror="this.outerHTML='<div class=&quot;collector-cover-fallback&quot;><i class=&quot;ti ${iconForGenre(r.genre)}&quot;></i></div>'">`
+      : `<div class="collector-cover-fallback"><i class="ti ${iconForGenre(r.genre)}"></i></div>`;
+
+    const line1 = [r.year, r.format, r.releaseType].filter(Boolean).join(' · ');
+    const line2 = [r.label, r.country].filter(Boolean).join(' · ');
+
+    return `
+      <div class="collector-card">
+        <div class="collector-top">
+          ${coverHtml}
+          <div class="collector-info">
+            <div class="collector-title-row">
+              <div>
+                <div class="collector-title">${escapeHtml(r.album)}</div>
+                <div class="collector-artist">${escapeHtml(r.artist)}</div>
+              </div>
+              <div class="icon-row">
+                <button class="star ${r.isFace ? 'active' : ''}" onclick='toggleFace("${r.id}")' title="${r.isFace ? 'Stack cover' : 'Set as stack cover'}"><i class="ti ti-star"></i></button>
+                <button onclick='editRecord("${r.id}")' title="Edit"><i class="ti ti-pencil"></i></button>
+                <button class="danger" onclick='deleteRecord("${r.id}")' title="Delete"><i class="ti ti-trash"></i></button>
+              </div>
+            </div>
+            ${line1 ? `<div class="collector-metaline">${escapeHtml(line1)}</div>` : ''}
+            ${line2 ? `<div class="collector-metaline">${escapeHtml(line2)}</div>` : ''}
+            <div class="collector-chips">
+              <span class="collector-chip condition">${r.condition}</span>
+            </div>
+          </div>
+        </div>
+        ${tracks.length ? `<div class="collector-tracklist">${tracks.map(t => escapeHtml(t)).join('<br>')}</div>` : ''}
+        <div class="collector-actions">
+          <span style="display:flex; gap:14px;">
+            ${r.price ? `<span>Paid $${r.price.toFixed(2)}</span>` : ''}
+            ${r.estimatedValue ? `<span>Est. Value $${r.estimatedValue.toFixed(2)}</span>` : ''}
+          </span>
+          ${tracks.length ? `
+          <button class="collector-details-toggle" onclick='toggleCardDetails(this)'>
+            View Details<i class="ti ti-chevron-down"></i>
+          </button>` : '<span></span>'}
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  armLazyImageTimeouts(el('drillCards'));
+}
+
+function toggleCardDetails(btn) {
+  btn.classList.toggle('open');
+  const card = btn.closest('.collector-card');
+  const tracklist = card.querySelector('.collector-tracklist');
+  tracklist.classList.toggle('open');
+  btn.innerHTML = btn.classList.contains('open')
+    ? 'Hide Details<i class="ti ti-chevron-down"></i>'
+    : 'View Details<i class="ti ti-chevron-down"></i>';
 }
 
 function renderRecentlyAdded() {
-  const recent = records.filter(r => !r.isWishlist).sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0)).slice(0, 10);
+  const recent = [...records].sort((a, b) => (b.addedAt||0) - (a.addedAt||0)).slice(0, 8);
   if (recent.length === 0) {
-    el('recentlyAddedShelf').style.display = 'none';
+    el('recentlyAddedSection').style.display = 'none';
     return;
   }
-  el('recentlyAddedShelf').style.display = 'block';
-  buildShelfRow(el('recentlyAddedRow'), recent, 'recentlyAdded', { featured: true });
+
+  el('recentlyAddedRow').innerHTML = recent.map(r => {
+    const cover = r.coverUrl
+      ? `<img src="${escapeAttr(r.coverUrl)}" alt="" loading="lazy" style="width:84px; height:84px; object-fit:cover; border-radius:5px;" onerror="this.outerHTML='<div style=&quot;width:84px;height:84px;border-radius:5px;background:var(--navy);display:flex;align-items:center;justify-content:center;&quot;><i class=&quot;ti ${iconForGenre(r.genre)}&quot; style=&quot;color:var(--amber);font-size:24px;&quot;></i></div>'">`
+      : `<div style="width:84px; height:84px; border-radius:5px; background:var(--navy); display:flex; align-items:center; justify-content:center;"><i class="ti ${iconForGenre(r.genre)}" style="color:var(--amber); font-size:24px;"></i></div>`;
+
+    return `
+      <div style="flex-shrink:0; width:84px; cursor:pointer;" onclick='editRecord("${r.id}")'>
+        ${cover}
+        <div style="font-size:11.5px; font-weight:700; color:var(--ink); margin-top:6px; line-height:1.25; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(r.album)}</div>
+        <div style="font-size:10.5px; color:#8a7d63; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(r.artist)}</div>
+      </div>
+    `;
+  }).join('');
 }
-
-// ---- WISHLIST SHELF (flat row, not grouped by genre) ----
-function renderWishlistShelf() {
-  const wishlist = records.filter(r => r.isWishlist).sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0));
-  if (wishlist.length === 0) {
-    el('wishlistShelf').style.display = 'none';
-    return;
-  }
-  el('wishlistShelf').style.display = 'block';
-  el('wishlistCount').textContent = `${wishlist.length} record${wishlist.length === 1 ? '' : 's'}`;
-  buildShelfRow(el('wishlistRow'), wishlist, 'wishlist', { wishlist: true });
-}
-
-// ---- SEARCH (primary navigation on the homepage) ----
-function renderSearchResults() {
-  const q = el('homeSearch').value.trim().toLowerCase();
-  const owned = records.filter(r => !r.isWishlist);
-  if (!q) {
-    el('searchResultsSection').style.display = 'none';
-    el('recentlyAddedShelf').style.display = owned.length ? 'block' : 'none';
-    el('shelvesContainer').style.display = 'block';
-    return true; // no query — caller should render the normal homepage
-  }
-  const matches = owned.filter(r => recordMatchesQuery(r, q));
-  el('recentlyAddedShelf').style.display = 'none';
-  el('shelvesContainer').style.display = 'none';
-  el('wishlistShelf').style.display = 'none';
-  el('searchResultsSection').style.display = 'block';
-  el('searchResultsHeading').innerHTML = `
-    ${matches.length} result${matches.length === 1 ? '' : 's'}
-    <a href="records.html?q=${encodeURIComponent(el('homeSearch').value.trim())}" class="section-heading-link">Refine with filters in All Records <i class="ti ti-arrow-right"></i></a>
-  `;
-  renderGalleryGrid(el('searchResultsGrid'), matches);
-  return false;
-}
-el('homeSearch').addEventListener('input', debounce(() => { renderSearchResults(); }, 150));
-wireSearchClear('homeSearch', 'homeSearchClear', renderSearchResults);
-
-el('randomBtn').addEventListener('click', openRandomRecord);
-
-el('continueBtn').addEventListener('click', e => {
-  e.preventDefault();
-  const genre = el('continueBtn').dataset.genre;
-  const label = el('shelfLabel-' + genre);
-  if (!label) return;
-  label.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  label.classList.remove('flash');
-  void label.offsetWidth; // restart the animation if it's already been triggered once
-  label.classList.add('flash');
-});
 
 function renderPage() {
   renderStats();
-  const ownedCount = records.filter(r => !r.isWishlist).length;
-  el('homeSearch').placeholder = `Search within your ${ownedCount} record${ownedCount === 1 ? '' : 's'}`;
-
-  const lastGenre = loadLastGenre();
-  const lastGenreStillExists = lastGenre && records.some(r => (r.genre || '') === lastGenre || (lastGenre === '__none__' && !r.genre));
-  if (lastGenreStillExists) {
-    el('continueLabel').textContent = `Continue browsing ${lastGenre === '__none__' ? 'No genre' : lastGenre}`;
-    el('continueBtn').dataset.genre = lastGenre;
-    el('continueBtn').style.display = 'inline-flex';
+  if (drillGenre) {
+    el('stacksControls').style.display = 'none';
+    el('drillControls').style.display = 'flex';
+    el('stacksGrid').style.display = 'none';
+    el('recentlyAddedSection').style.display = 'none';
+    el('drillHeading').style.display = 'block';
+    el('drillCards').style.display = 'grid';
+    renderDrillCards();
   } else {
-    el('continueBtn').style.display = 'none';
-  }
-
-  if (renderSearchResults()) {
+    el('recentlyAddedSection').style.display = 'block';
     renderRecentlyAdded();
-    renderShelves();
-    renderWishlistShelf();
+    renderStacksGrid();
   }
 }
 </script>
