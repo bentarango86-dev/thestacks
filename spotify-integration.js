@@ -189,16 +189,24 @@ const SpotifyExport = (() => {
     return overlap / Math.max(targetTokens.size, 1);
   }
 
-  async function findTrackUri(accessToken, artist, album, title) {
+  async function findTrackUri(accessToken, artist, album, title, retryCount = 0) {
     const query = `track:${title} artist:${artist}`;
     const url = `${API}/search?${new URLSearchParams({ q: query, type: "track", limit: "5" })}`;
 
     const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
 
     if (res.status === 429) {
-      const retryAfter = Number(res.headers.get("Retry-After") || 1);
-      await new Promise((r) => setTimeout(r, retryAfter * 1000));
-      return findTrackUri(accessToken, artist, album, title);
+      if (retryCount >= 5) {
+        console.warn(`Rate limited repeatedly on "${title}" by ${artist} — skipping it.`);
+        return null;
+      }
+      // Retry-After is often not readable from a cross-origin fetch() response
+      // unless the API explicitly exposes it via CORS — don't rely on it.
+      // Back off with increasing delay instead, capped so a bad stretch can't
+      // stall the whole export indefinitely.
+      const backoffMs = Math.min(1000 * Math.pow(2, retryCount), 8000);
+      await new Promise((r) => setTimeout(r, backoffMs));
+      return findTrackUri(accessToken, artist, album, title, retryCount + 1);
     }
 
     if (!res.ok) return null;
@@ -271,6 +279,9 @@ const SpotifyExport = (() => {
         const uri = await findTrackUri(accessToken, record.artist, record.album, title);
         if (uri) allUris.push(uri);
         else unmatched.push({ artist: record.artist, album: record.album, title });
+        // Small throttle between requests — cheap insurance against tripping
+        // the rate limit in the first place, especially on large stacks.
+        await new Promise((r) => setTimeout(r, 80));
       }
       albumsDone++;
       onProgress?.({
