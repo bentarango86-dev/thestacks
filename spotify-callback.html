@@ -19,15 +19,16 @@
 <body>
   <p id="status">Connecting to Spotify…</p>
 
-  <script type="module">
-    import { handleSpotifyRedirect } from "./spotifyAuth.js";
-
-    handleSpotifyRedirect().then((success) => {
+  <script src="spotify-integration.js"></script>
+  <script>
+    SpotifyExport.handleRedirect().then(({ success, resumeGenre }) => {
       const status = document.getElementById("status");
       if (success) {
         status.textContent = "Connected! Redirecting…";
-        // Adjust this path to wherever your main app lives
-        window.location.href = "/";
+        const target = resumeGenre ? `index.html?genre=${encodeURIComponent(resumeGenre)}` : "index.html";
+        // Small flag so index.html knows to auto-resume the export on load
+        sessionStorage.setItem("stacks_spotify_just_connected", "1");
+        window.location.href = target;
       } else {
         status.textContent = "Something went wrong connecting to Spotify. Please try again.";
       }
