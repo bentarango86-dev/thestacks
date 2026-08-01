@@ -91,11 +91,6 @@
     transition: background 0.25s ease;
   }
   .spotify-progress-block.filled { background: #1DB954; }
-  .spotify-overlay-current {
-    font-size: 12px; color: rgba(12,35,64,0.55);
-    margin: 14px 0 0;
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  }
   .spotify-overlay-check {
     width: 48px; height: 48px; border-radius: 50%;
     background: #1DB954; color: #fff;
@@ -447,7 +442,7 @@ function closeSpotifyOverlay() {
   if (backdrop) backdrop.style.display = 'none';
 }
 
-function renderSpotifyBuildingState(label, albumCount, trackTotal, filledSegments, totalSegments, currentAlbum, tracksAddedSoFar) {
+function renderSpotifyBuildingState(label, albumCount, trackTotal, filledSegments, totalSegments) {
   const blocks = Array.from({ length: totalSegments }, (_, i) =>
     `<div class="spotify-progress-block${i < filledSegments ? ' filled' : ''}"></div>`
   ).join('');
@@ -456,18 +451,13 @@ function renderSpotifyBuildingState(label, albumCount, trackTotal, filledSegment
     <h3 class="spotify-overlay-genre">${escapeHtml(label)}</h3>
     <p class="spotify-overlay-meta">${albumCount} album${albumCount === 1 ? '' : 's'} · ${trackTotal} track${trackTotal === 1 ? '' : 's'}</p>
     <div class="spotify-progress-track">${blocks}</div>
-    ${currentAlbum ? `<p class="spotify-overlay-current">${escapeHtml(currentAlbum)} · ${tracksAddedSoFar} added so far</p>` : ''}
   `;
 }
 
-function renderSpotifySuccessState(playlistUrl, tracksAdded, unmatchedCount) {
-  const countLine = unmatchedCount > 0
-    ? `${tracksAdded} track${tracksAdded === 1 ? '' : 's'} added · ${unmatchedCount} couldn't be matched`
-    : `${tracksAdded} track${tracksAdded === 1 ? '' : 's'} added`;
+function renderSpotifySuccessState(playlistUrl) {
   document.getElementById('spotifyOverlayBody').innerHTML = `
     <div class="spotify-overlay-check"><i class="ti ti-check"></i></div>
     <p class="spotify-overlay-status">Opening Spotify…</p>
-    <p class="spotify-overlay-meta">${escapeHtml(countLine)}</p>
     <a href="${playlistUrl}" target="_blank" class="spotify-overlay-fallback-link">Didn't open? Tap here</a>
   `;
 }
@@ -499,9 +489,9 @@ async function runSpotifyExport(btn, genre) {
     const result = await SpotifyExport.buildPlaylist({
       stackName: `${label} Stack`,
       records: list,
-      onProgress: ({ albumsDone, albumsTotal, tracksAdded, currentAlbum }) => {
+      onProgress: ({ albumsDone, albumsTotal }) => {
         const filled = Math.round((albumsDone / albumsTotal) * totalSegments);
-        renderSpotifyBuildingState(label, list.length, trackTotal, filled, totalSegments, currentAlbum, tracksAdded);
+        renderSpotifyBuildingState(label, list.length, trackTotal, filled, totalSegments);
       },
     });
 
@@ -509,7 +499,7 @@ async function runSpotifyExport(btn, genre) {
       console.warn('Tracks Spotify could not match:', result.unmatched);
     }
 
-    renderSpotifySuccessState(result.playlistUrl, result.tracksAdded, result.unmatched.length);
+    renderSpotifySuccessState(result.playlistUrl);
 
     // Best-effort auto-open. On iOS this may just open the web player instead
     // of the native app (or do nothing at all) since we're a couple of
