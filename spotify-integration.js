@@ -10,7 +10,7 @@
 
 const SpotifyExport = (() => {
   // ---- Config ----
-  const CLIENT_ID = "456e40d0e6df45faac3eec20ce6ea1e9"; // <-- fill in from the dashboard
+  const CLIENT_ID = "YOUR_SPOTIFY_CLIENT_ID"; // <-- fill in from the dashboard
   const REDIRECT_URI = window.location.origin + window.location.pathname.replace(/[^/]*$/, "") + "spotify-callback.html";
   const SCOPES = ["playlist-modify-private", "playlist-modify-public"];
   const API = "https://api.spotify.com/v1";
@@ -192,20 +192,27 @@ const SpotifyExport = (() => {
   // Adaptive throttle: shared across all requests in this session. Grows
   // when we hit 429s, eases back down gradually when requests succeed —
   // rather than guessing a single fixed delay that's either too slow when
-  // it doesn't need to be, or (as we saw) too fast to stay under the limit.
-  let throttleMs = 150;
-  const THROTTLE_MIN = 150;
-  const THROTTLE_MAX = 4000;
+  // it doesn't need to be, or (as observed) too fast to stay under the limit.
+  // Starting point and ceiling raised significantly after seeing 429s persist
+  // even at the previous 4s ceiling — this app's current quota is tighter
+  // than a typical Development Mode app, so we favor reliability over speed.
+  let throttleMs = 800;
+  const THROTTLE_MIN = 800;
+  const THROTTLE_MAX = 15000;
 
   async function findTrackUri(accessToken, artist, album, title, retryCount = 0) {
-    const query = `track:${title} artist:${artist}`;
+    // Records with collaborations are sometimes stored as "Artist A, Artist B"
+    // or "Artist A & Artist B" — Spotify's artist: filter expects one name,
+    // so search on just the first one rather than the whole joined string.
+    const primaryArtist = artist.split(/,|&| feat\.?| with /i)[0].trim();
+    const query = `track:${title} artist:${primaryArtist}`;
     const url = `${API}/search?${new URLSearchParams({ q: query, type: "track", limit: "5" })}`;
 
     const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
 
     if (res.status === 429) {
       throttleMs = Math.min(throttleMs * 2, THROTTLE_MAX);
-      if (retryCount >= 5) {
+      if (retryCount >= 7) {
         console.warn(`Rate limited repeatedly on "${title}" by ${artist} — skipping it.`);
         return null;
       }
@@ -213,7 +220,7 @@ const SpotifyExport = (() => {
       // unless the API explicitly exposes it via CORS — don't rely on it.
       // Back off with increasing delay instead, capped so a bad stretch can't
       // stall the whole export indefinitely.
-      const backoffMs = Math.min(1000 * Math.pow(2, retryCount), 8000);
+      const backoffMs = Math.min(3000 * Math.pow(2, retryCount), 30000);
       await new Promise((r) => setTimeout(r, backoffMs));
       return findTrackUri(accessToken, artist, album, title, retryCount + 1);
     }
@@ -241,6 +248,37 @@ const SpotifyExport = (() => {
     return bestScore < 0.4 ? null : best.uri;
   }
 
+  // Spotify's pagination shape is consistent across list endpoints — items[]
+  // plus a `next` field that's already a full URL, or null on the last page.
+  async function fetchAllPages(accessToken, initialUrl) {
+    let url = initialUrl;
+    const allItems = [];
+    while (url) {
+      const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+      if (!res.ok) break;
+      const data = await res.json();
+      allItems.push(...(data.items || []));
+      url = data.next;
+    }
+    return allItems;
+  }
+
+  // Look for a playlist we already created for this stack, so re-running an
+  // export doesn't spawn a duplicate playlist every time.
+  async function findExistingPlaylist(accessToken, name) {
+    const playlists = await fetchAllPages(accessToken, `${API}/me/playlists?limit=50`);
+    return playlists.find((p) => p.name === name) || null;
+  }
+
+  // Also renamed in the Feb 2026 migration: /playlists/{id}/tracks → /playlists/{id}/items
+  async function getPlaylistTrackUris(accessToken, playlistId) {
+    const items = await fetchAllPages(
+      accessToken,
+      `${API}/playlists/${playlistId}/items?fields=items(track(uri)),next&limit=100`
+    );
+    return new Set(items.map((it) => it.track?.uri).filter(Boolean));
+  }
+
   // Spotify's February 2026 Dev Mode migration removed POST /users/{id}/playlists
   // in favor of POST /me/playlists — no user ID needed at all anymore.
   async function createPlaylist(accessToken, name, description) {
@@ -266,6 +304,48 @@ const SpotifyExport = (() => {
     }
   }
 
+  // ---- Local "already synced" cache ----
+  // Captures both which records are in a stack and their tracklist content,
+  // so adding/removing a record or editing a tracklist invalidates the cache,
+  // but re-playing an untouched stack doesn't.
+  function simpleHash(str) {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      hash = (hash * 31 + str.charCodeAt(i)) | 0;
+    }
+    return hash.toString(36);
+  }
+
+  function computeStackFingerprint(records) {
+    const parts = records
+      .map((r) => `${r.id}:${simpleHash(r.tracklist || "")}`)
+      .sort();
+    return simpleHash(parts.join("|"));
+  }
+
+  function syncCacheKey(stackName) {
+    return `stacks_spotify_synced:${stackName}`;
+  }
+
+  function readSyncCache(stackName) {
+    try {
+      return JSON.parse(localStorage.getItem(syncCacheKey(stackName)) || "null");
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function writeSyncCache(stackName, fingerprint, playlistUrl, trackCount) {
+    try {
+      localStorage.setItem(
+        syncCacheKey(stackName),
+        JSON.stringify({ fingerprint, playlistUrl, trackCount, syncedAt: Date.now() })
+      );
+    } catch (e) {
+      /* storage full or unavailable — non-fatal, just means no fast-path next time */
+    }
+  }
+
   /**
    * @param {Object} options
    * @param {string} options.stackName
@@ -276,22 +356,54 @@ const SpotifyExport = (() => {
     const accessToken = await getValidAccessToken();
     if (!accessToken) throw new Error("Not logged in to Spotify.");
 
-    const playlist = await createPlaylist(
+    const fingerprint = computeStackFingerprint(records);
+    const cached = readSyncCache(stackName);
+
+    if (cached && cached.fingerprint === fingerprint) {
+      // Nothing about this stack has changed since the last time we fully
+      // synced it — skip the playlist lookup, the existing-tracks fetch, and
+      // the whole search loop entirely.
+      onProgress?.({
+        albumsDone: records.length,
+        albumsTotal: records.length,
+        tracksAdded: 0,
+        currentAlbum: null,
+      });
+      return {
+        playlistUrl: cached.playlistUrl,
+        tracksAdded: 0,
+        alreadyPresent: cached.trackCount || 0,
+        wasExisting: true,
+        unmatched: [],
+      };
+    }
+
+    const existingPlaylist = await findExistingPlaylist(accessToken, stackName);
+    const wasExisting = Boolean(existingPlaylist);
+    const playlist = existingPlaylist || await createPlaylist(
       accessToken,
       stackName,
       "Built from The Stacks — your personal record ledger."
     );
+    const existingUris = wasExisting ? await getPlaylistTrackUris(accessToken, playlist.id) : new Set();
 
-    const allUris = [];
+    const newUris = [];
     const unmatched = [];
     let albumsDone = 0;
+    let alreadyPresent = 0;
 
     for (const record of records) {
       const tracks = parseTracklist(record.tracklist);
       for (const title of tracks) {
         const uri = await findTrackUri(accessToken, record.artist, record.album, title);
-        if (uri) allUris.push(uri);
-        else unmatched.push({ artist: record.artist, album: record.album, title });
+        if (!uri) {
+          unmatched.push({ artist: record.artist, album: record.album, title });
+        } else if (existingUris.has(uri)) {
+          alreadyPresent++;
+        } else {
+          newUris.push(uri);
+          existingUris.add(uri); // covers the same track appearing on more than one record
+        }
         // Adaptive throttle — starts fast, automatically slows down if the
         // API starts pushing back, eases up again once things are clean.
         await new Promise((r) => setTimeout(r, throttleMs));
@@ -300,14 +412,27 @@ const SpotifyExport = (() => {
       onProgress?.({
         albumsDone,
         albumsTotal: records.length,
-        tracksAdded: allUris.length,
+        tracksAdded: newUris.length,
         currentAlbum: `${record.artist} – ${record.album}`,
       });
     }
 
-    if (allUris.length > 0) await addTracksToPlaylist(accessToken, playlist.id, allUris);
+    if (newUris.length > 0) await addTracksToPlaylist(accessToken, playlist.id, newUris);
 
-    return { playlistUrl: playlist.external_urls.spotify, tracksAdded: allUris.length, unmatched };
+    // Only cache as "fully synced" when nothing was left unmatched — an
+    // incomplete run (e.g. some tracks failed to resolve) should keep
+    // re-checking next time rather than permanently giving up on them.
+    if (unmatched.length === 0) {
+      writeSyncCache(stackName, fingerprint, playlist.external_urls.spotify, newUris.length + alreadyPresent);
+    }
+
+    return {
+      playlistUrl: playlist.external_urls.spotify,
+      tracksAdded: newUris.length,
+      alreadyPresent,
+      wasExisting,
+      unmatched,
+    };
   }
 
   return {
