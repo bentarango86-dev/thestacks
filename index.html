@@ -13,105 +13,140 @@
 <link rel="stylesheet" href="shared.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/3.44.0/tabler-icons.min.css">
 <style>
-  /* Hover-reveal play button on each shelf label */
-  .shelf-label { position: relative; }
-  .shelf-play-btn {
-    opacity: 0.28;
-    transition: opacity 0.18s ease, transform 0.18s ease;
-    background: var(--ink, #0c2340);
-    color: #fff;
-    border: none;
-    border-radius: 999px;
-    width: 34px;
-    height: 34px;
-    display: inline-flex;
-    align-items: center;
+  /* ---- Play Stack card ----
+     Lives as an actual child of .shelf-row (appended via JS after
+     buildShelfRow populates it), so it shares the row's real gap/scroll/
+     height with the covers automatically instead of guessing values. */
+  .shelf-play-card {
+    flex: 0 0 auto;
+    width: 128px;
+    scroll-snap-align: start;
+    display: flex;
+    flex-direction: column;
     justify-content: center;
+    background-color: var(--paper, #fff);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+    border: 1.5px solid var(--navy, #0c2340);
+    border-radius: 6px; /* squarer than a typical UI card — reads more like a jacket */
+    box-shadow: 0 2px 3px rgba(12,35,64,0.35), 0 8px 12px rgba(12,35,64,0.18);
+    padding: 10px 9px;
+    text-align: center;
+    opacity: 0;
+    transform: translateX(24px);
+    /* Hiding: instant, no delay. Revealing gets its own delayed transition
+       below so a quick pass over the shelf doesn't flash the card. */
+    transition: opacity 0.22s ease-out, transform 0.22s ease-out, box-shadow 0.18s ease;
+    z-index: 5;
     cursor: pointer;
-    margin-left: auto;
-    flex-shrink: 0;
-    font-size: 15px;
   }
-  .shelf-label:hover .shelf-play-btn,
-  .shelf-play-btn:focus-visible {
+  .shelf:hover .shelf-play-card,
+  .new-arrivals-panel:hover .shelf-play-card {
     opacity: 1;
-    transform: scale(1.05);
+    transform: translateX(0);
+    transition-delay: 0.18s; /* ~150-200ms hover-intent delay before it appears */
+  }
+  .shelf-play-card.active {
+    /* Once clicked, stays visible regardless of hover/delay — mid-build
+       shouldn't disappear just because the pointer moved on. */
+    opacity: 1;
+    transform: translateX(0);
+    transition-delay: 0s;
   }
   @media (hover: none) {
-    .shelf-play-btn { opacity: 0.55; }
+    /* No hover on touch devices — keep it reachable, just quieter than a
+       deliberate hover reveal would be. */
+    .shelf-play-card { opacity: 0.9; transform: translateX(0); transition-delay: 0s; }
   }
-  .shelf-play-btn:disabled { opacity: 1; cursor: default; }
+  .shelf:hover .shelf-play-card:hover,
+  .new-arrivals-panel:hover .shelf-play-card:hover {
+    transform: translateX(0) translateY(-3px);
+    box-shadow: 0 4px 6px rgba(12,35,64,0.28), 0 14px 20px rgba(12,35,64,0.26);
+  }
+  @media (max-width: 560px) {
+    .shelf-play-card { width: 104px; padding: 8px 7px; }
+  }
 
-  /* Playlist-building overlay */
-  .spotify-overlay-backdrop {
-    position: fixed; inset: 0;
-    background: rgba(12,35,64,0.55);
-    display: none;
-    align-items: center; justify-content: center;
-    z-index: 1000;
-    padding: 20px;
+  .turntable-icon {
+    width: 30px; height: 30px;
+    margin: 0 auto 6px;
+    display: block;
+    color: var(--ink, #0c2340);
   }
-  .spotify-overlay-card {
-    background: #faf3e8;
-    border-radius: 14px;
-    padding: 32px 28px;
-    max-width: 340px;
-    width: 100%;
-    text-align: center;
-    position: relative;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  .turntable-platter {
+    transform-box: view-box;
+    transform-origin: center;
+    transition: transform 0.3s ease;
   }
-  .spotify-overlay-close {
-    position: absolute; top: 8px; right: 10px;
-    background: none; border: none; font-size: 20px;
-    color: var(--ink); cursor: pointer; line-height: 1;
-    padding: 6px;
+  .shelf-play-card:hover .turntable-platter {
+    transform: rotate(10deg);
   }
-  .spotify-overlay-eyebrow {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;
-    color: rgba(12,35,64,0.55);
-    margin: 0 0 6px;
+  .shelf-play-card.building .turntable-platter {
+    animation: turntableSpin 1.6s linear infinite;
   }
-  .spotify-overlay-genre {
+  @keyframes turntableSpin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  .play-card-label {
     font-family: 'Fraunces', serif;
-    font-weight: 700; font-size: 24px;
-    color: var(--ink); margin: 0 0 6px;
+    font-weight: 700; font-size: 13px;
+    color: var(--ink, #0c2340);
   }
-  .spotify-overlay-meta {
-    font-size: 13px; color: rgba(12,35,64,0.6);
-    margin: 0 0 20px;
+  .play-card-eyebrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8.5px; text-transform: uppercase; letter-spacing: 0.06em;
+    color: #8a7d63;
+    margin: 0 0 3px;
   }
-  .spotify-progress-track {
-    display: flex; gap: 4px; justify-content: center; flex-wrap: wrap;
+  .play-card-genre {
+    font-family: 'Fraunces', serif;
+    font-weight: 700; font-size: 12.5px;
+    color: var(--ink, #0c2340);
+    margin: 0 0 3px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
-  .spotify-progress-block {
-    width: 16px; height: 8px; border-radius: 2px;
+  .play-card-meta {
+    font-size: 9.5px; color: #8a7d63;
+    margin: 0 0 8px;
+  }
+  .play-card-progress-track {
+    width: 100%; height: 5px; border-radius: 3px;
     background: rgba(12,35,64,0.12);
-    transition: background 0.25s ease;
+    overflow: hidden;
   }
-  .spotify-progress-block.filled { background: #1DB954; }
-  .spotify-overlay-check {
-    width: 48px; height: 48px; border-radius: 50%;
-    background: #1DB954; color: #fff;
+  .play-card-progress-fill {
+    height: 100%;
+    background: var(--navy, #0c2340);
+    border-radius: 3px;
+    transition: width 0.8s ease;
+  }
+  .play-card-current {
+    font-size: 8.5px; color: #8a7d63;
+    margin-top: 6px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .play-card-check {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: var(--amber, #9c2b32); color: var(--vinyl, #f2e8d3);
     display: flex; align-items: center; justify-content: center;
-    font-size: 22px; margin: 0 auto 14px;
-    animation: spotifyCheckPop 0.3s ease;
+    font-size: 15px; margin: 0 auto 6px;
+    animation: playCardCheckPop 0.3s ease;
   }
-  @keyframes spotifyCheckPop {
+  @keyframes playCardCheckPop {
     from { transform: scale(0.5); opacity: 0; }
     to { transform: scale(1); opacity: 1; }
   }
-  .spotify-overlay-status {
-    font-family: 'Fraunces', serif; font-weight: 700; font-size: 18px;
-    color: var(--ink); margin: 0 0 16px;
+  .play-card-status {
+    font-family: 'Fraunces', serif; font-weight: 700; font-size: 12px;
+    color: var(--ink, #0c2340); margin: 0 0 4px;
   }
-  .spotify-overlay-fallback-link {
-    display: inline-block; font-size: 13px;
-    color: rgba(12,35,64,0.6); text-decoration: underline;
+  .play-card-fallback-link {
+    display: inline-block; font-size: 9px;
+    color: var(--amber-dim, #7a2027); text-decoration: underline;
   }
-  .spotify-overlay-error-detail {
-    font-size: 13px; color: rgba(12,35,64,0.6); margin: 0 0 16px;
+  .play-card-error-detail {
+    font-size: 9.5px; color: #8a7d63; margin: 4px 0 0;
   }
 </style>
 </head>
@@ -314,7 +349,6 @@ function renderShelves() {
         <div class="shelf-label" id="shelfLabel-${escapeAttr(genre)}">
           <h3>${escapeHtml(label)}</h3>
           <span class="shelf-count">${list.length} record${list.length === 1 ? '' : 's'}</span>
-          <button type="button" class="shelf-play-btn" title="Play this stack on Spotify" onclick='runSpotifyExport(this, ${JSON.stringify(genre)})'><i class="ti ti-player-play-filled"></i></button>
         </div>
         <div class="shelf-body">
           <button type="button" class="shelf-arrow prev" aria-label="Scroll left" hidden onclick="scrollShelf(this, -1)"><i class="ti ti-chevron-left"></i></button>
@@ -327,21 +361,16 @@ function renderShelves() {
   }).join('');
 
   // Newest records toward the front of each shelf — flipping through feels
-  // like the crate itself, not an alphabetized catalog.
+  // like the crate itself, not an alphabetized catalog. The play card is
+  // appended as a real last child of the row itself (after buildShelfRow
+  // populates it) so it shares the row's actual gap/scroll/height with the
+  // covers, rather than guessing those values from outside the row.
   entries.forEach(([genre, list]) => {
     const sorted = [...list].sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0));
-    buildShelfRow(document.getElementById('shelfRow-' + genre), sorted, genre);
+    const rowEl = document.getElementById('shelfRow-' + genre);
+    buildShelfRow(rowEl, sorted, genre);
+    appendPlayCardToRow(rowEl, genre);
   });
-
-  // If we're returning from a Spotify login redirect mid-export, resume now
-  // that the shelf (and its button) actually exists in the DOM.
-  if (pendingSpotifyResumeGenre) {
-    const genre = pendingSpotifyResumeGenre;
-    pendingSpotifyResumeGenre = null;
-    const labelEl = el('shelfLabel-' + genre);
-    const btn = labelEl ? labelEl.querySelector('.shelf-play-btn') : null;
-    runSpotifyExport(btn, genre);
-  }
 }
 
 function renderRecentlyAdded() {
@@ -351,7 +380,9 @@ function renderRecentlyAdded() {
     return;
   }
   el('recentlyAddedShelf').style.display = 'block';
-  buildShelfRow(el('recentlyAddedRow'), recent, 'recentlyAdded', { featured: true });
+  const rowEl = el('recentlyAddedRow');
+  buildShelfRow(rowEl, recent, 'recentlyAdded', { featured: true });
+  appendPlayCardToRow(rowEl, 'recentlyAdded');
 }
 
 // ---- WISHLIST SHELF (flat row, not grouped by genre) ----
@@ -363,7 +394,9 @@ function renderWishlistShelf() {
   }
   el('wishlistShelf').style.display = 'block';
   el('wishlistCount').textContent = `${wishlist.length} record${wishlist.length === 1 ? '' : 's'}`;
-  buildShelfRow(el('wishlistRow'), wishlist, 'wishlist', { wishlist: true });
+  const rowEl = el('wishlistRow');
+  buildShelfRow(rowEl, wishlist, 'wishlist', { wishlist: true });
+  appendPlayCardToRow(rowEl, 'wishlist');
 }
 
 // ---- SEARCH (primary navigation on the homepage) ----
@@ -404,118 +437,189 @@ el('continueBtn').addEventListener('click', e => {
   label.classList.add('flash');
 });
 
-// ---- Spotify export ----
-// Genre to resume exporting once shelves re-render after an OAuth redirect
-// (read once at load, consumed by renderShelves() the next time it runs).
-let pendingSpotifyResumeGenre = new URLSearchParams(window.location.search).get('spotifyResumeGenre');
-if (pendingSpotifyResumeGenre) {
+// ---- Music provider abstraction ----
+// The UI never talks to Spotify directly — only through this generic
+// interface. Adding Apple Music or YouTube Music later means adding another
+// entry here and a way to pick it, not touching any shelf/card code.
+const MusicProviders = {
+  spotify: {
+    isConnected: () => SpotifyExport.isLoggedIn(),
+    connect: (resumeStackId) => SpotifyExport.redirectToAuth(resumeStackId),
+    buildPlaylist: (opts) => SpotifyExport.buildPlaylist(opts),
+    parseTracklist: (text) => SpotifyExport.parseTracklist(text),
+  },
+};
+const activeProviderId = 'spotify';
+function getMusicProvider() {
+  return MusicProviders[activeProviderId];
+}
+
+// Stack to resume playing once the page re-renders after an OAuth redirect
+// (read once at load; the underlying redirect/callback mechanics are
+// necessarily provider-specific, but everything from here up is generic).
+let pendingResumeStackId = new URLSearchParams(window.location.search).get('spotifyResumeGenre');
+if (pendingResumeStackId) {
   const url = new URL(window.location.href);
   url.searchParams.delete('spotifyResumeGenre');
   window.history.replaceState({}, '', url); // keep refreshes from re-triggering
 }
 
-// ---- Spotify export overlay ----
-function ensureSpotifyOverlay() {
-  let backdrop = document.getElementById('spotifyOverlayBackdrop');
-  if (backdrop) return backdrop;
-  backdrop = document.createElement('div');
-  backdrop.className = 'spotify-overlay-backdrop';
-  backdrop.id = 'spotifyOverlayBackdrop';
-  backdrop.innerHTML = `
-    <div class="spotify-overlay-card">
-      <button type="button" class="spotify-overlay-close" id="spotifyOverlayClose" aria-label="Close">&times;</button>
-      <div id="spotifyOverlayBody"></div>
-    </div>
+// ---- Play Stack card rendering ----
+// Every shelf (genre, New Arrivals, Wishlist) shares these same states.
+
+function turntableSvg() {
+  return `<svg class="turntable-icon" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="16" cy="16" r="13" fill="none" stroke="currentColor" stroke-width="1.4"/>
+    <g class="turntable-platter">
+      <circle cx="16" cy="16" r="9" fill="none" stroke="currentColor" stroke-width="1.2"/>
+      <circle cx="16" cy="16" r="2.2" fill="currentColor"/>
+      <line x1="16" y1="16" x2="24" y2="9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+      <circle cx="24" cy="9" r="1.6" fill="currentColor"/>
+    </g>
+  </svg>`;
+}
+
+// ---- Resolving what "the stack" means for each shelf type ----
+
+function getStackRecordsAndLabel(stackId) {
+  if (stackId === 'recentlyAdded') {
+    return {
+      label: 'New Arrivals',
+      list: records.filter(r => !r.isWishlist).sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0)).slice(0, 10),
+    };
+  }
+  if (stackId === 'wishlist') {
+    return {
+      label: 'Wishlist',
+      list: records.filter(r => r.isWishlist).sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0)),
+    };
+  }
+  const label = stackId === '__none__' ? 'No genre' : stackId;
+  return {
+    label,
+    list: records.filter(r => !r.isWishlist && (stackId === '__none__' ? !r.genre : r.genre === stackId)),
+  };
+}
+
+// Appends a play card as a real last child of a shelf-row, right after
+// buildShelfRow() has populated it with covers — this way the card shares
+// the row's actual gap/scroll-snap/height with the covers automatically,
+// rather than guessing those values from outside the row. Built via the
+// DOM API rather than an HTML string, so no attribute-escaping is needed
+// for the stack id (works even if a genre name has odd characters in it).
+function appendPlayCardToRow(rowEl, stackId) {
+  if (!rowEl) return null;
+  const provider = getMusicProvider();
+  const { list } = getStackRecordsAndLabel(stackId);
+  // Don't offer to play a shelf that has nothing to actually export — a
+  // handful of records still have no tracklist data filled in.
+  const exportableTrackCount = list.reduce((sum, r) => sum + provider.parseTracklist(r.tracklist).length, 0);
+  if (exportableTrackCount === 0) return null;
+
+  const cardEl = document.createElement('div');
+  cardEl.className = 'shelf-play-card';
+  cardEl.id = 'playCard-' + stackId;
+  cardEl.tabIndex = 0;
+  cardEl.setAttribute('role', 'button');
+  cardEl.addEventListener('click', () => playStack(stackId, cardEl));
+  rowEl.appendChild(cardEl);
+  resetPlayCard(cardEl);
+  return cardEl;
+}
+
+function resetPlayCard(cardEl) {
+  cardEl.classList.remove('active', 'building');
+  cardEl.innerHTML = `${turntableSvg()}<div class="play-card-label">Play Stack</div>`;
+}
+
+function renderPlayCardBuilding(cardEl, label, albumCount, trackTotal, pct, currentAlbum, tracksAddedSoFar) {
+  cardEl.innerHTML = `
+    ${turntableSvg()}
+    <p class="play-card-eyebrow">Building Playlist…</p>
+    <p class="play-card-genre">${escapeHtml(label)}</p>
+    <p class="play-card-meta">${albumCount} Album${albumCount === 1 ? '' : 's'} · ${trackTotal} Track${trackTotal === 1 ? '' : 's'}</p>
+    <div class="play-card-progress-track"><div class="play-card-progress-fill" style="width:${pct}%"></div></div>
+    ${currentAlbum ? `<p class="play-card-current">${escapeHtml(currentAlbum)} · ${tracksAddedSoFar} added</p>` : ''}
   `;
-  document.body.appendChild(backdrop);
-  backdrop.addEventListener('click', e => { if (e.target === backdrop) closeSpotifyOverlay(); });
-  document.getElementById('spotifyOverlayClose').addEventListener('click', closeSpotifyOverlay);
-  return backdrop;
 }
 
-function openSpotifyOverlay() {
-  ensureSpotifyOverlay().style.display = 'flex';
-}
-
-function closeSpotifyOverlay() {
-  const backdrop = document.getElementById('spotifyOverlayBackdrop');
-  if (backdrop) backdrop.style.display = 'none';
-}
-
-function renderSpotifyBuildingState(label, albumCount, trackTotal, filledSegments, totalSegments) {
-  const blocks = Array.from({ length: totalSegments }, (_, i) =>
-    `<div class="spotify-progress-block${i < filledSegments ? ' filled' : ''}"></div>`
-  ).join('');
-  document.getElementById('spotifyOverlayBody').innerHTML = `
-    <p class="spotify-overlay-eyebrow">Building playlist…</p>
-    <h3 class="spotify-overlay-genre">${escapeHtml(label)}</h3>
-    <p class="spotify-overlay-meta">${albumCount} album${albumCount === 1 ? '' : 's'} · ${trackTotal} track${trackTotal === 1 ? '' : 's'}</p>
-    <div class="spotify-progress-track">${blocks}</div>
+function renderPlayCardSuccess(cardEl, playlistUrl, tracksAdded, unmatchedCount, alreadyPresent, wasExisting) {
+  let detail = '';
+  if (unmatchedCount > 0) {
+    detail = `<p class="play-card-meta">${tracksAdded} added · ${unmatchedCount} skipped</p>`;
+  } else if (wasExisting && tracksAdded === 0 && alreadyPresent > 0) {
+    detail = `<p class="play-card-meta">Already up to date</p>`;
+  }
+  cardEl.innerHTML = `
+    <div class="play-card-check"><i class="ti ti-check"></i></div>
+    <p class="play-card-status">Opening Spotify…</p>
+    ${detail}
+    <a href="${playlistUrl}" target="_blank" class="play-card-fallback-link" onclick="event.stopPropagation()">Didn't open? Tap here</a>
   `;
 }
 
-function renderSpotifySuccessState(playlistUrl) {
-  document.getElementById('spotifyOverlayBody').innerHTML = `
-    <div class="spotify-overlay-check"><i class="ti ti-check"></i></div>
-    <p class="spotify-overlay-status">Opening Spotify…</p>
-    <a href="${playlistUrl}" target="_blank" class="spotify-overlay-fallback-link">Didn't open? Tap here</a>
+function renderPlayCardError(cardEl, message) {
+  cardEl.innerHTML = `
+    <p class="play-card-status">Couldn't build it</p>
+    <p class="play-card-error-detail">${escapeHtml(message)}</p>
   `;
 }
 
-function renderSpotifyErrorState(message) {
-  document.getElementById('spotifyOverlayBody').innerHTML = `
-    <p class="spotify-overlay-status">Couldn't build the playlist</p>
-    <p class="spotify-overlay-error-detail">${escapeHtml(message)}</p>
-    <button type="button" class="btn btn-ghost" onclick="closeSpotifyOverlay()">Close</button>
-  `;
-}
+// Only one stack can build at a time — a click on a second card while one's
+// already running is simply ignored rather than racing it.
+let stackPlayInProgress = false;
 
-async function runSpotifyExport(btn, genre) {
-  if (!SpotifyExport.isLoggedIn()) {
-    SpotifyExport.redirectToAuth(genre); // leaves the page, comes back via spotify-callback.html
+async function playStack(stackId, cardEl) {
+  if (stackPlayInProgress) return;
+
+  const provider = getMusicProvider();
+
+  if (!provider.isConnected()) {
+    provider.connect(stackId); // leaves the page, comes back via the provider's callback page
     return;
   }
 
-  const label = genre === '__none__' ? 'No genre' : genre;
-  const list = records.filter(r => !r.isWishlist && (genre === '__none__' ? !r.genre : r.genre === genre));
-  const trackTotal = list.reduce((sum, r) => sum + SpotifyExport.parseTracklist(r.tracklist).length, 0);
-  const totalSegments = Math.min(list.length, 24) || 1;
+  const { label, list } = getStackRecordsAndLabel(stackId);
+  const trackTotal = list.reduce((sum, r) => sum + provider.parseTracklist(r.tracklist).length, 0);
 
-  if (btn) btn.disabled = true;
-  openSpotifyOverlay();
-  renderSpotifyBuildingState(label, list.length, trackTotal, 0, totalSegments);
+  stackPlayInProgress = true;
+  cardEl.classList.add('active', 'building');
+  renderPlayCardBuilding(cardEl, label, list.length, trackTotal, 0);
 
   try {
-    const result = await SpotifyExport.buildPlaylist({
+    const result = await provider.buildPlaylist({
       stackName: `${label} Stack`,
       records: list,
-      onProgress: ({ albumsDone, albumsTotal }) => {
-        const filled = Math.round((albumsDone / albumsTotal) * totalSegments);
-        renderSpotifyBuildingState(label, list.length, trackTotal, filled, totalSegments);
+      onProgress: ({ albumsDone, albumsTotal, tracksAdded, currentAlbum }) => {
+        const pct = Math.round((albumsDone / albumsTotal) * 100);
+        renderPlayCardBuilding(cardEl, label, list.length, trackTotal, pct, currentAlbum, tracksAdded);
       },
     });
 
     if (result.unmatched.length > 0) {
-      console.warn('Tracks Spotify could not match:', result.unmatched);
+      console.warn('Tracks could not be matched:', result.unmatched);
     }
 
-    renderSpotifySuccessState(result.playlistUrl);
+    cardEl.classList.remove('building');
+    renderPlayCardSuccess(cardEl, result.playlistUrl, result.tracksAdded, result.unmatched.length, result.alreadyPresent, result.wasExisting);
 
     // Best-effort auto-open. On iOS this may just open the web player instead
     // of the native app (or do nothing at all) since we're a couple of
-    // `await`s past the original tap — the fallback link above covers that,
-    // and the overlay closing on its own leaves no dead-end state either way.
-    setTimeout(() => {
-      window.location.href = result.playlistUrl;
-    }, 550);
-    setTimeout(() => {
-      closeSpotifyOverlay();
-      if (btn) btn.disabled = false;
-    }, 4000);
+    // `await`s past the original tap — the fallback link above covers that.
+    setTimeout(() => { window.location.href = result.playlistUrl; }, 550);
+
+    stackPlayInProgress = false;
+    // Only auto-reset on a fully clean run — if tracks were skipped, leave
+    // the detail visible so there's time to notice and tap the fallback link.
+    if (result.unmatched.length === 0) {
+      setTimeout(() => resetPlayCard(cardEl), 3000);
+    }
   } catch (err) {
     console.error(err);
-    renderSpotifyErrorState(err.message || 'Please try again.');
-    if (btn) btn.disabled = false;
+    cardEl.classList.remove('building');
+    renderPlayCardError(cardEl, err.message || 'Please try again.');
+    stackPlayInProgress = false;
+    setTimeout(() => resetPlayCard(cardEl), 5000);
   }
 }
 
@@ -539,6 +643,15 @@ function renderPage() {
     renderRecentlyAdded();
     renderShelves();
     renderWishlistShelf();
+  }
+
+  // If we're returning from an OAuth redirect mid-export, resume now that
+  // every shelf (and its freshly-appended card) actually exists in the DOM.
+  if (pendingResumeStackId) {
+    const stackId = pendingResumeStackId;
+    pendingResumeStackId = null;
+    const cardEl = document.getElementById('playCard-' + stackId);
+    if (cardEl) playStack(stackId, cardEl);
   }
 }
 </script>
