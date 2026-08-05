@@ -19,7 +19,8 @@
      height with the covers automatically instead of guessing values. */
   .shelf-play-card {
     flex: 0 0 auto;
-    width: 128px;
+    width: 144px; /* matches .shelf-cover exactly */
+    aspect-ratio: 1 / 1; /* square, same as covers, regardless of row height */
     scroll-snap-align: start;
     display: flex;
     flex-direction: column;
@@ -38,6 +39,9 @@
     transition: opacity 0.22s ease-out, transform 0.22s ease-out, box-shadow 0.18s ease;
     z-index: 5;
     cursor: pointer;
+  }
+  .shelf-play-card.featured {
+    width: 168px; /* matches .shelf-cover-featured, used on the New Arrivals row */
   }
   .shelf:hover .shelf-play-card,
   .new-arrivals-panel:hover .shelf-play-card {
@@ -63,7 +67,8 @@
     box-shadow: 0 4px 6px rgba(12,35,64,0.28), 0 14px 20px rgba(12,35,64,0.26);
   }
   @media (max-width: 560px) {
-    .shelf-play-card { width: 104px; padding: 8px 7px; }
+    .shelf-play-card { width: 118px; padding: 8px 7px; } /* matches .shelf-cover mobile size */
+    .shelf-play-card.featured { width: 134px; } /* matches .shelf-cover-featured mobile size */
   }
 
   .turntable-icon {
@@ -382,7 +387,7 @@ function renderRecentlyAdded() {
   el('recentlyAddedShelf').style.display = 'block';
   const rowEl = el('recentlyAddedRow');
   buildShelfRow(rowEl, recent, 'recentlyAdded', { featured: true });
-  appendPlayCardToRow(rowEl, 'recentlyAdded');
+  appendPlayCardToRow(rowEl, 'recentlyAdded', { featured: true });
 }
 
 // ---- WISHLIST SHELF (flat row, not grouped by genre) ----
@@ -507,7 +512,7 @@ function getStackRecordsAndLabel(stackId) {
 // rather than guessing those values from outside the row. Built via the
 // DOM API rather than an HTML string, so no attribute-escaping is needed
 // for the stack id (works even if a genre name has odd characters in it).
-function appendPlayCardToRow(rowEl, stackId) {
+function appendPlayCardToRow(rowEl, stackId, options = {}) {
   if (!rowEl) return null;
   const provider = getMusicProvider();
   const { list } = getStackRecordsAndLabel(stackId);
@@ -517,7 +522,7 @@ function appendPlayCardToRow(rowEl, stackId) {
   if (exportableTrackCount === 0) return null;
 
   const cardEl = document.createElement('div');
-  cardEl.className = 'shelf-play-card';
+  cardEl.className = 'shelf-play-card' + (options.featured ? ' featured' : '');
   cardEl.id = 'playCard-' + stackId;
   cardEl.tabIndex = 0;
   cardEl.setAttribute('role', 'button');
