@@ -18,10 +18,11 @@
      buildShelfRow populates it), so it shares the row's real gap/scroll/
      height with the covers automatically instead of guessing values. */
   .shelf-play-card {
-    flex: 0 0 auto;
-    width: 144px; /* matches .shelf-cover exactly */
-    aspect-ratio: 1 / 1; /* square, same as covers, regardless of row height */
-    scroll-snap-align: start;
+    position: absolute;
+    /* left/top/width/height are set by JS to exactly match whichever cover
+       is currently last-fully-visible in the row — the card literally sits
+       on top of that record until you hover, rather than guessing a size
+       or a fixed corner position. */
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -33,42 +34,44 @@
     padding: 10px 9px;
     text-align: center;
     opacity: 0;
-    transform: translateX(24px);
+    /* Invisible + non-interactive at rest, so it doesn't block clicks on
+       the actual cover it's sitting on top of until it's actually shown. */
+    pointer-events: none;
+    /* Resting exactly over that cover, tilted as if leaning back into the
+       shelf — reveal lifts and straightens it, like actually grabbing the
+       record and pulling it toward you, not a panel sliding in. */
+    transform: translateY(10px) rotate(4deg);
     /* Hiding: instant, no delay. Revealing gets its own delayed transition
        below so a quick pass over the shelf doesn't flash the card. */
     transition: opacity 0.22s ease-out, transform 0.22s ease-out, box-shadow 0.18s ease;
-    z-index: 5;
+    z-index: 6;
     cursor: pointer;
-  }
-  .shelf-play-card.featured {
-    width: 168px; /* matches .shelf-cover-featured, used on the New Arrivals row */
   }
   .shelf:hover .shelf-play-card,
   .new-arrivals-panel:hover .shelf-play-card {
     opacity: 1;
-    transform: translateX(0);
+    pointer-events: auto;
+    transform: translateY(-10px) rotate(-4deg);
     transition-delay: 0.18s; /* ~150-200ms hover-intent delay before it appears */
   }
   .shelf-play-card.active {
     /* Once clicked, stays visible regardless of hover/delay — mid-build
        shouldn't disappear just because the pointer moved on. */
     opacity: 1;
-    transform: translateX(0);
+    pointer-events: auto;
+    transform: translateY(-10px) rotate(-4deg);
     transition-delay: 0s;
   }
   @media (hover: none) {
     /* No hover on touch devices — keep it reachable, just quieter than a
        deliberate hover reveal would be. */
-    .shelf-play-card { opacity: 0.9; transform: translateX(0); transition-delay: 0s; }
+    .shelf-play-card { opacity: 0.9; pointer-events: auto; transform: translateY(-10px) rotate(-4deg); transition-delay: 0s; }
   }
   .shelf:hover .shelf-play-card:hover,
   .new-arrivals-panel:hover .shelf-play-card:hover {
-    transform: translateX(0) translateY(-3px);
+    /* Straightening out further, like it's settled fully in your hand. */
+    transform: translateY(-13px) rotate(-1deg);
     box-shadow: 0 4px 6px rgba(12,35,64,0.28), 0 14px 20px rgba(12,35,64,0.26);
-  }
-  @media (max-width: 560px) {
-    .shelf-play-card { width: 118px; padding: 8px 7px; } /* matches .shelf-cover mobile size */
-    .shelf-play-card.featured { width: 134px; } /* matches .shelf-cover-featured mobile size */
   }
 
   .turntable-icon {
@@ -512,8 +515,46 @@ function getStackRecordsAndLabel(stackId) {
 // rather than guessing those values from outside the row. Built via the
 // DOM API rather than an HTML string, so no attribute-escaping is needed
 // for the stack id (works even if a genre name has odd characters in it).
+// Measures the row and moves cardEl to exactly overlay whichever cover is
+// currently the last one fully visible within the row's clipped viewport —
+// not just the last cover in the list, since the row scrolls.
+function repositionPlayCard(cardEl, rowEl) {
+  const covers = Array.from(rowEl.children); // rowEl only ever contains covers — the card itself lives in shelf-body, not here
+  if (covers.length === 0) return;
+
+  const rowRect = rowEl.getBoundingClientRect();
+  const shelfBodyRect = cardEl.parentElement.getBoundingClientRect();
+
+  let target = covers[0];
+  for (const cover of covers) {
+    const r = cover.getBoundingClientRect();
+    if (r.right <= rowRect.right + 1) { // +1px tolerance for subpixel rounding
+      target = cover;
+    } else {
+      break; // covers are in scroll order — first partially-clipped one ends the scan
+    }
+  }
+
+  const targetRect = target.getBoundingClientRect();
+  cardEl.style.left = (targetRect.left - shelfBodyRect.left) + 'px';
+  cardEl.style.top = (targetRect.top - shelfBodyRect.top) + 'px';
+  cardEl.style.width = targetRect.width + 'px';
+  cardEl.style.height = targetRect.height + 'px';
+}
+
+function throttleToNextFrame(fn) {
+  let scheduled = false;
+  return (...args) => {
+    if (scheduled) return;
+    scheduled = true;
+    requestAnimationFrame(() => { scheduled = false; fn(...args); });
+  };
+}
+
 function appendPlayCardToRow(rowEl, stackId, options = {}) {
   if (!rowEl) return null;
+  const shelfBodyEl = rowEl.parentElement; // .shelf-body — already position:relative in shared.css
+  if (!shelfBodyEl) return null;
   const provider = getMusicProvider();
   const { list } = getStackRecordsAndLabel(stackId);
   // Don't offer to play a shelf that has nothing to actually export — a
@@ -527,8 +568,18 @@ function appendPlayCardToRow(rowEl, stackId, options = {}) {
   cardEl.tabIndex = 0;
   cardEl.setAttribute('role', 'button');
   cardEl.addEventListener('click', () => playStack(stackId, cardEl));
-  rowEl.appendChild(cardEl);
+  shelfBodyEl.appendChild(cardEl);
   resetPlayCard(cardEl);
+
+  const reposition = throttleToNextFrame(() => repositionPlayCard(cardEl, rowEl));
+  reposition();
+  // Follows whichever cover is currently last-fully-visible as the row is
+  // scrolled (arrows or drag) or the window is resized. Listeners die
+  // naturally with the row/card on the next re-render — nothing to clean
+  // up explicitly.
+  rowEl.addEventListener('scroll', reposition, { passive: true });
+  window.addEventListener('resize', reposition);
+
   return cardEl;
 }
 
