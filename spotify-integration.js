@@ -144,9 +144,16 @@ const SpotifyExport = (() => {
   async function getValidAccessToken() {
     const token = localStorage.getItem(STORAGE_KEYS.accessToken);
     const expiresAt = Number(localStorage.getItem(STORAGE_KEYS.expiresAt) || 0);
-    if (!token) return null;
-    if (Date.now() > expiresAt - 60000) return await refreshAccessToken();
-    return token;
+
+    if (token && Date.now() <= expiresAt - 60000) return token;
+
+    // Access token missing or expired — try to refresh as long as we still
+    // have a refresh token. Previously this bailed out to null whenever the
+    // access token specifically was absent, even with a perfectly good
+    // refresh token sitting right there.
+    if (localStorage.getItem(STORAGE_KEYS.refreshToken)) return await refreshAccessToken();
+
+    return null;
   }
 
   function isLoggedIn() {
