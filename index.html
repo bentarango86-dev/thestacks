@@ -14,15 +14,17 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/3.44.0/tabler-icons.min.css">
 <style>
   /* ---- Play Stack card ----
-     Lives as an actual child of .shelf-row (appended via JS after
-     buildShelfRow populates it), so it shares the row's real gap/scroll/
-     height with the covers automatically instead of guessing values. */
+     Anchored to the shelf's title (.shelf-label / .new-arrivals-sign),
+     which now has position:relative for this purpose. No longer tied to
+     album art at all — reveal is driven by explicit JS hover-intent timers
+     on the title, not a broad hover zone over the whole shelf. */
+  .shelf-label, .new-arrivals-sign { position: relative; }
+
   .shelf-play-card {
     position: absolute;
-    /* left/top/width/height are set by JS to exactly match whichever cover
-       is currently last-fully-visible in the row — the card literally sits
-       on top of that record until you hover, rather than guessing a size
-       or a fixed corner position. */
+    top: calc(100% + 10px);
+    right: 0;
+    width: 130px;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -34,43 +36,28 @@
     padding: 10px 9px;
     text-align: center;
     opacity: 0;
-    /* Invisible + non-interactive at rest, so it doesn't block clicks on
-       the actual cover it's sitting on top of until it's actually shown. */
     pointer-events: none;
-    /* Resting exactly over that cover, tilted as if leaning back into the
-       shelf — reveal lifts and straightens it, like actually grabbing the
-       record and pulling it toward you, not a panel sliding in. */
-    transform: translateY(10px) rotate(4deg);
-    /* Hiding: instant, no delay. Revealing gets its own delayed transition
-       below so a quick pass over the shelf doesn't flash the card. */
-    transition: opacity 0.22s ease-out, transform 0.22s ease-out, box-shadow 0.18s ease;
+    /* Resting just below the title, tilted as if leaning back — reveal
+       lifts and straightens it, like pulling a record toward you. */
+    transform: translateY(6px) rotate(3deg);
+    transition: opacity 0.16s ease-out, transform 0.16s ease-out, box-shadow 0.18s ease;
     z-index: 6;
     cursor: pointer;
   }
-  .shelf:hover .shelf-play-card,
-  .new-arrivals-panel:hover .shelf-play-card {
-    opacity: 1;
-    pointer-events: auto;
-    transform: translateY(-10px) rotate(-4deg);
-    transition-delay: 0.18s; /* ~150-200ms hover-intent delay before it appears */
-  }
+  .shelf-play-card.visible,
   .shelf-play-card.active {
-    /* Once clicked, stays visible regardless of hover/delay — mid-build
-       shouldn't disappear just because the pointer moved on. */
     opacity: 1;
     pointer-events: auto;
-    transform: translateY(-10px) rotate(-4deg);
-    transition-delay: 0s;
+    transform: translateY(0) rotate(-2deg);
   }
   @media (hover: none) {
     /* No hover on touch devices — keep it reachable, just quieter than a
        deliberate hover reveal would be. */
-    .shelf-play-card { opacity: 0.9; pointer-events: auto; transform: translateY(-10px) rotate(-4deg); transition-delay: 0s; }
+    .shelf-play-card { opacity: 0.9; pointer-events: auto; transform: translateY(0) rotate(-2deg); }
   }
-  .shelf:hover .shelf-play-card:hover,
-  .new-arrivals-panel:hover .shelf-play-card:hover {
+  .shelf-play-card:hover {
     /* Straightening out further, like it's settled fully in your hand. */
-    transform: translateY(-13px) rotate(-1deg);
+    transform: translateY(-3px) rotate(0deg);
     box-shadow: 0 4px 6px rgba(12,35,64,0.28), 0 14px 20px rgba(12,35,64,0.26);
   }
 
@@ -228,7 +215,7 @@
   </div>
 
   <div class="new-arrivals-panel" id="recentlyAddedShelf">
-    <div class="new-arrivals-sign">
+    <div class="new-arrivals-sign" id="newArrivalsSign">
       <span class="new-arrivals-tag">New Arrivals</span>
       <span class="new-arrivals-subtitle">Fresh off the shelf</span>
     </div>
@@ -243,7 +230,7 @@
   <div id="shelvesContainer"></div>
 
   <div class="shelf" id="wishlistShelf" style="display:none;">
-    <div class="shelf-label">
+    <div class="shelf-label" id="wishlistLabel">
       <h3>Wishlist</h3>
       <span class="shelf-count" id="wishlistCount"></span>
     </div>
@@ -369,15 +356,13 @@ function renderShelves() {
   }).join('');
 
   // Newest records toward the front of each shelf — flipping through feels
-  // like the crate itself, not an alphabetized catalog. The play card is
-  // appended as a real last child of the row itself (after buildShelfRow
-  // populates it) so it shares the row's actual gap/scroll/height with the
-  // covers, rather than guessing those values from outside the row.
+  // like the crate itself, not an alphabetized catalog. The play card
+  // anchors to the shelf's title, not the row — hovering the title reveals
+  // it, decoupled entirely from album art or scroll position.
   entries.forEach(([genre, list]) => {
     const sorted = [...list].sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0));
-    const rowEl = document.getElementById('shelfRow-' + genre);
-    buildShelfRow(rowEl, sorted, genre);
-    appendPlayCardToRow(rowEl, genre);
+    buildShelfRow(document.getElementById('shelfRow-' + genre), sorted, genre);
+    appendPlayCardToTitle(document.getElementById('shelfLabel-' + genre), genre);
   });
 }
 
@@ -388,9 +373,8 @@ function renderRecentlyAdded() {
     return;
   }
   el('recentlyAddedShelf').style.display = 'block';
-  const rowEl = el('recentlyAddedRow');
-  buildShelfRow(rowEl, recent, 'recentlyAdded', { featured: true });
-  appendPlayCardToRow(rowEl, 'recentlyAdded', { featured: true });
+  buildShelfRow(el('recentlyAddedRow'), recent, 'recentlyAdded', { featured: true });
+  appendPlayCardToTitle(el('newArrivalsSign'), 'recentlyAdded');
 }
 
 // ---- WISHLIST SHELF (flat row, not grouped by genre) ----
@@ -402,9 +386,8 @@ function renderWishlistShelf() {
   }
   el('wishlistShelf').style.display = 'block';
   el('wishlistCount').textContent = `${wishlist.length} record${wishlist.length === 1 ? '' : 's'}`;
-  const rowEl = el('wishlistRow');
-  buildShelfRow(rowEl, wishlist, 'wishlist', { wishlist: true });
-  appendPlayCardToRow(rowEl, 'wishlist');
+  buildShelfRow(el('wishlistRow'), wishlist, 'wishlist', { wishlist: true });
+  appendPlayCardToTitle(el('wishlistLabel'), 'wishlist');
 }
 
 // ---- SEARCH (primary navigation on the homepage) ----
@@ -515,46 +498,39 @@ function getStackRecordsAndLabel(stackId) {
 // rather than guessing those values from outside the row. Built via the
 // DOM API rather than an HTML string, so no attribute-escaping is needed
 // for the stack id (works even if a genre name has odd characters in it).
-// Measures the row and moves cardEl to exactly overlay whichever cover is
-// currently the last one fully visible within the row's clipped viewport —
-// not just the last cover in the list, since the row scrolls.
-function repositionPlayCard(cardEl, rowEl) {
-  const covers = Array.from(rowEl.children); // rowEl only ever contains covers — the card itself lives in shelf-body, not here
-  if (covers.length === 0) return;
+// Explicit hover-intent timing on the title itself, rather than a broad
+// CSS :hover zone over the whole shelf — waits ~180ms before showing (so
+// just passing over the title doesn't trigger it), hides instantly on
+// leave, and cancels a pending show if the pointer leaves before it fires.
+function wirePlayCardHoverIntent(titleEl, cardEl) {
+  let showTimer = null;
 
-  const rowRect = rowEl.getBoundingClientRect();
-  const shelfBodyRect = cardEl.parentElement.getBoundingClientRect();
-
-  let target = covers[0];
-  for (const cover of covers) {
-    const r = cover.getBoundingClientRect();
-    if (r.right <= rowRect.right + 1) { // +1px tolerance for subpixel rounding
-      target = cover;
-    } else {
-      break; // covers are in scroll order — first partially-clipped one ends the scan
-    }
-  }
-
-  const targetRect = target.getBoundingClientRect();
-  cardEl.style.left = (targetRect.left - shelfBodyRect.left) + 'px';
-  cardEl.style.top = (targetRect.top - shelfBodyRect.top) + 'px';
-  cardEl.style.width = targetRect.width + 'px';
-  cardEl.style.height = targetRect.height + 'px';
-}
-
-function throttleToNextFrame(fn) {
-  let scheduled = false;
-  return (...args) => {
-    if (scheduled) return;
-    scheduled = true;
-    requestAnimationFrame(() => { scheduled = false; fn(...args); });
+  const show = () => {
+    clearTimeout(showTimer);
+    showTimer = setTimeout(() => cardEl.classList.add('visible'), 180);
   };
+  const hide = () => {
+    clearTimeout(showTimer);
+    if (!cardEl.classList.contains('active')) cardEl.classList.remove('visible');
+  };
+
+  titleEl.addEventListener('mouseenter', show);
+  titleEl.addEventListener('mouseleave', hide);
+  // Moving from the title onto the card itself shouldn't hide it.
+  cardEl.addEventListener('mouseenter', show);
+  cardEl.addEventListener('mouseleave', hide);
 }
 
-function appendPlayCardToRow(rowEl, stackId, options = {}) {
-  if (!rowEl) return null;
-  const shelfBodyEl = rowEl.parentElement; // .shelf-body — already position:relative in shared.css
-  if (!shelfBodyEl) return null;
+function appendPlayCardToTitle(titleEl, stackId) {
+  if (!titleEl) return null;
+
+  // Shelf titles are either static (New Arrivals, Wishlist) and reused
+  // across re-renders, or freshly created each time (genre shelves) — in
+  // either case, clear out any card left over from a previous render
+  // before adding a new one, so re-renders never stack duplicates.
+  const existingCard = titleEl.querySelector('.shelf-play-card');
+  if (existingCard) existingCard.remove();
+
   const provider = getMusicProvider();
   const { list } = getStackRecordsAndLabel(stackId);
   // Don't offer to play a shelf that has nothing to actually export — a
@@ -563,28 +539,20 @@ function appendPlayCardToRow(rowEl, stackId, options = {}) {
   if (exportableTrackCount === 0) return null;
 
   const cardEl = document.createElement('div');
-  cardEl.className = 'shelf-play-card' + (options.featured ? ' featured' : '');
+  cardEl.className = 'shelf-play-card';
   cardEl.id = 'playCard-' + stackId;
   cardEl.tabIndex = 0;
   cardEl.setAttribute('role', 'button');
   cardEl.addEventListener('click', () => playStack(stackId, cardEl));
-  shelfBodyEl.appendChild(cardEl);
+  titleEl.appendChild(cardEl);
   resetPlayCard(cardEl);
-
-  const reposition = throttleToNextFrame(() => repositionPlayCard(cardEl, rowEl));
-  reposition();
-  // Follows whichever cover is currently last-fully-visible as the row is
-  // scrolled (arrows or drag) or the window is resized. Listeners die
-  // naturally with the row/card on the next re-render — nothing to clean
-  // up explicitly.
-  rowEl.addEventListener('scroll', reposition, { passive: true });
-  window.addEventListener('resize', reposition);
+  wirePlayCardHoverIntent(titleEl, cardEl);
 
   return cardEl;
 }
 
 function resetPlayCard(cardEl) {
-  cardEl.classList.remove('active', 'building');
+  cardEl.classList.remove('active', 'building', 'visible');
   cardEl.innerHTML = `${turntableSvg()}<div class="play-card-label">Play Stack</div>`;
 }
 
