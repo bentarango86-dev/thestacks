@@ -589,12 +589,31 @@ function renderPlayCardError(cardEl, message) {
   `;
 }
 
-// Only one stack can build at a time — a click on a second card while one's
-// already running is simply ignored rather than racing it.
+// Only one stack can build at a time. A click on a second card while one's
+// already running used to just be ignored — now it's queued (most-recent
+// click wins if several come in) and starts automatically once the current
+// build finishes, success or failure.
 let stackPlayInProgress = false;
+let queuedPlay = null; // { stackId, cardEl }
+
+// Marks the current build as finished and, if a click came in while it was
+// running, kicks off that queued stack next (its own card was already showing
+// "Queued…", so this just hands it back into the normal flow).
+function finishPlay() {
+  stackPlayInProgress = false;
+  if (!queuedPlay) return;
+  const next = queuedPlay;
+  queuedPlay = null;
+  playStack(next.stackId, next.cardEl);
+}
 
 async function playStack(stackId, cardEl) {
-  if (stackPlayInProgress) return;
+  if (stackPlayInProgress) {
+    queuedPlay = { stackId, cardEl };
+    cardEl.classList.add('active', 'visible');
+    cardEl.innerHTML = `${turntableSvg()}<div class="play-card-label">Queued…</div>`;
+    return;
+  }
 
   const provider = getMusicProvider();
 
@@ -632,18 +651,18 @@ async function playStack(stackId, cardEl) {
     // `await`s past the original tap — the fallback link above covers that.
     setTimeout(() => { window.location.href = result.playlistUrl; }, 550);
 
-    stackPlayInProgress = false;
     // Only auto-reset on a fully clean run — if tracks were skipped, leave
     // the detail visible so there's time to notice and tap the fallback link.
     if (result.unmatched.length === 0) {
       setTimeout(() => resetPlayCard(cardEl), 3000);
     }
+    finishPlay();
   } catch (err) {
     console.error(err);
     cardEl.classList.remove('building');
     renderPlayCardError(cardEl, err.message || 'Please try again.');
-    stackPlayInProgress = false;
     setTimeout(() => resetPlayCard(cardEl), 5000);
+    finishPlay();
   }
 }
 
