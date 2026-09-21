@@ -13,19 +13,54 @@
 <link rel="stylesheet" href="shared.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/3.44.0/tabler-icons.min.css">
 <style>
-  /* ---- Play Stack card ----
+  /* ---- Play Stack trigger ----
      Anchored to the shelf's title (.shelf-label / .new-arrivals-sign),
-     which now has position:relative for this purpose. No longer tied to
-     album art at all — reveal is driven by explicit JS hover-intent timers
-     on the title, not a broad hover zone over the whole shelf. */
+     which has position:relative for this purpose. The record count and the
+     play icon are grouped into one .shelf-play-trigger wrapper so they fade
+     in together — both stay hidden until the title is hovered (JS
+     hover-intent, below) or tapped/clicked, rather than the count always
+     being visible on its own.
+     At rest, .shelf-play-card is just the small turntable icon, inline next
+     to the count. Clicking it kicks off a build, at which point .active
+     switches it into the same paper-jacket popup as before (positioned
+     absolutely below the title) so there's room for progress/result text. */
   .shelf-label, .new-arrivals-sign { position: relative; }
 
+  .shelf-play-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    align-self: center; /* the row aligns on baseline; a bare text count sits fine there, an icon doesn't */
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease-out;
+  }
+  .shelf-play-trigger.visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .shelf-label:focus-within .shelf-play-trigger {
+    /* Keyboard users tabbing to the icon (it's focusable) still need it visible. */
+    opacity: 1;
+    pointer-events: auto;
+  }
+
   .shelf-play-card {
+    position: relative;
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+  .shelf-play-card.active {
     position: absolute;
     top: calc(100% + 10px);
     right: 0;
     width: 130px;
-    display: flex;
+    height: auto;
     flex-direction: column;
     justify-content: center;
     background-color: var(--paper, #fff);
@@ -35,27 +70,16 @@
     box-shadow: 0 2px 3px rgba(12,35,64,0.35), 0 8px 12px rgba(12,35,64,0.18);
     padding: 10px 9px;
     text-align: center;
-    opacity: 0;
-    pointer-events: none;
-    /* Resting just below the title, tilted as if leaning back — reveal
-       lifts and straightens it, like pulling a record toward you. */
-    transform: translateY(6px) rotate(3deg);
-    transition: opacity 0.16s ease-out, transform 0.16s ease-out, box-shadow 0.18s ease;
     z-index: 6;
-    cursor: pointer;
+    /* Popping open from the icon, tilted as if leaning back — like pulling
+       a record toward you. */
+    animation: playCardExpand 0.16s ease-out;
   }
-  .shelf-play-card.visible,
-  .shelf-play-card.active {
-    opacity: 1;
-    pointer-events: auto;
-    transform: translateY(0) rotate(-2deg);
+  @keyframes playCardExpand {
+    from { opacity: 0; transform: translateY(6px) rotate(3deg); }
+    to { opacity: 1; transform: translateY(0) rotate(-2deg); }
   }
-  @media (hover: none) {
-    /* No hover on touch devices — keep it reachable, just quieter than a
-       deliberate hover reveal would be. */
-    .shelf-play-card { opacity: 0.9; pointer-events: auto; transform: translateY(0) rotate(-2deg); }
-  }
-  .shelf-play-card:hover {
+  .shelf-play-card.active:hover {
     /* Straightening out further, like it's settled fully in your hand. */
     transform: translateY(-3px) rotate(0deg);
     box-shadow: 0 4px 6px rgba(12,35,64,0.28), 0 14px 20px rgba(12,35,64,0.26);
@@ -66,6 +90,13 @@
     margin: 0 auto 6px;
     display: block;
     color: var(--ink, #0c2340);
+  }
+  .shelf-play-card:not(.active) .turntable-icon {
+    /* Idle state — small inline icon rather than the centered icon-above-label
+       layout the expanded card uses. */
+    width: 20px;
+    height: 20px;
+    margin: 0;
   }
   .turntable-platter {
     transform-box: view-box;
@@ -492,33 +523,40 @@ function getStackRecordsAndLabel(stackId) {
   };
 }
 
-// Appends a play card as a real last child of a shelf-row, right after
-// buildShelfRow() has populated it with covers — this way the card shares
-// the row's actual gap/scroll-snap/height with the covers automatically,
-// rather than guessing those values from outside the row. Built via the
-// DOM API rather than an HTML string, so no attribute-escaping is needed
-// for the stack id (works even if a genre name has odd characters in it).
-// Explicit hover-intent timing on the title itself, rather than a broad
-// CSS :hover zone over the whole shelf — waits ~180ms before showing (so
-// just passing over the title doesn't trigger it), hides instantly on
-// leave, and cancels a pending show if the pointer leaves before it fires.
-function wirePlayCardHoverIntent(titleEl, cardEl) {
+// Groups the record count and the play icon into one .shelf-play-trigger
+// wrapper so both fade in together, and wires up when that wrapper reveals:
+// hover-intent on the title (waits ~180ms so just passing over it doesn't
+// trigger it, hides instantly on leave), plus a click/tap on the title as
+// the touch/keyboard equivalent of hover. A click on the icon itself is
+// handled by its own listener (which stops propagation), so this only
+// fires for clicks elsewhere on the title. Tracks whether the pointer is
+// currently over the title so an auto-reset after a build finishes doesn't
+// yank the trigger away while someone's still hovering it.
+function wirePlayCardHoverIntent(titleEl, wrapperEl, cardEl) {
   let showTimer = null;
+  wrapperEl.dataset.hovering = '0';
 
   const show = () => {
+    wrapperEl.dataset.hovering = '1';
     clearTimeout(showTimer);
-    showTimer = setTimeout(() => cardEl.classList.add('visible'), 180);
+    showTimer = setTimeout(() => wrapperEl.classList.add('visible'), 180);
   };
   const hide = () => {
+    wrapperEl.dataset.hovering = '0';
     clearTimeout(showTimer);
-    if (!cardEl.classList.contains('active')) cardEl.classList.remove('visible');
+    if (!cardEl.classList.contains('active')) wrapperEl.classList.remove('visible');
   };
 
   titleEl.addEventListener('mouseenter', show);
   titleEl.addEventListener('mouseleave', hide);
-  // Moving from the title onto the card itself shouldn't hide it.
-  cardEl.addEventListener('mouseenter', show);
-  cardEl.addEventListener('mouseleave', hide);
+  // Moving from the title onto the wrapper/icon itself shouldn't hide it.
+  wrapperEl.addEventListener('mouseenter', show);
+  wrapperEl.addEventListener('mouseleave', hide);
+
+  titleEl.addEventListener('click', () => {
+    if (cardEl.classList.contains('active')) return; // stay open while building/showing a result
+    wrapperEl.classList.toggle('visible');
+  });
 }
 
 function appendPlayCardToTitle(titleEl, stackId) {
@@ -526,10 +564,10 @@ function appendPlayCardToTitle(titleEl, stackId) {
 
   // Shelf titles are either static (New Arrivals, Wishlist) and reused
   // across re-renders, or freshly created each time (genre shelves) — in
-  // either case, clear out any card left over from a previous render
+  // either case, clear out any trigger left over from a previous render
   // before adding a new one, so re-renders never stack duplicates.
-  const existingCard = titleEl.querySelector('.shelf-play-card');
-  if (existingCard) existingCard.remove();
+  const existingWrapper = titleEl.querySelector('.shelf-play-trigger');
+  if (existingWrapper) existingWrapper.remove();
 
   const provider = getMusicProvider();
   const { list } = getStackRecordsAndLabel(stackId);
@@ -538,22 +576,46 @@ function appendPlayCardToTitle(titleEl, stackId) {
   const exportableTrackCount = list.reduce((sum, r) => sum + provider.parseTracklist(r.tracklist).length, 0);
   if (exportableTrackCount === 0) return null;
 
+  const wrapperEl = document.createElement('span');
+  wrapperEl.className = 'shelf-play-trigger';
+
+  // Moves the existing record-count span (New Arrivals has none) into the
+  // wrapper so it fades in and out together with the icon, instead of
+  // always being visible on its own.
+  const countEl = titleEl.querySelector('.shelf-count');
+  if (countEl) wrapperEl.appendChild(countEl);
+
   const cardEl = document.createElement('div');
   cardEl.className = 'shelf-play-card';
   cardEl.id = 'playCard-' + stackId;
   cardEl.tabIndex = 0;
   cardEl.setAttribute('role', 'button');
-  cardEl.addEventListener('click', () => playStack(stackId, cardEl));
-  titleEl.appendChild(cardEl);
+  cardEl.setAttribute('aria-label', 'Play stack');
+  cardEl._wrapperEl = wrapperEl; // lets resetPlayCard find the wrapper without threading it through every call site
+  cardEl.addEventListener('click', (e) => {
+    e.stopPropagation(); // don't let the title's click handler treat this as a reveal-toggle
+    playStack(stackId, cardEl);
+  });
+  wrapperEl.appendChild(cardEl);
+
+  titleEl.appendChild(wrapperEl);
   resetPlayCard(cardEl);
-  wirePlayCardHoverIntent(titleEl, cardEl);
+  wirePlayCardHoverIntent(titleEl, wrapperEl, cardEl);
 
   return cardEl;
 }
 
 function resetPlayCard(cardEl) {
-  cardEl.classList.remove('active', 'building', 'visible');
-  cardEl.innerHTML = `${turntableSvg()}<div class="play-card-label">Play Stack</div>`;
+  cardEl.classList.remove('active', 'building');
+  cardEl.innerHTML = turntableSvg();
+
+  // Collapse the trigger back to hidden, unless the pointer is still
+  // sitting right on it — in which case leave it visible rather than
+  // yanking it out from under the cursor.
+  const wrapperEl = cardEl._wrapperEl;
+  if (wrapperEl && wrapperEl.dataset.hovering !== '1') {
+    wrapperEl.classList.remove('visible');
+  }
 }
 
 function renderPlayCardBuilding(cardEl, label, albumCount, trackTotal, pct, currentAlbum, tracksAddedSoFar) {
@@ -610,7 +672,7 @@ function finishPlay() {
 async function playStack(stackId, cardEl) {
   if (stackPlayInProgress) {
     queuedPlay = { stackId, cardEl };
-    cardEl.classList.add('active', 'visible');
+    cardEl.classList.add('active');
     cardEl.innerHTML = `${turntableSvg()}<div class="play-card-label">Queued…</div>`;
     return;
   }
