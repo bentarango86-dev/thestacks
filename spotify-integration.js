@@ -403,7 +403,14 @@ const SpotifyExport = (() => {
     const res = await fetch(`${API}/playlists/${playlistId}?fields=id,name,external_urls`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
-    if (!res.ok) return null; // e.g. 404 — deleted or no longer accessible
+    if (!res.ok) {
+      // e.g. 404 — deleted or no longer accessible. Logged (rather than
+      // silently swallowed) since findOrCreatePlaylist's cache-repair path
+      // depends on this actually being a 404 and not, say, a 429 or an
+      // expired-token 401 masquerading as "just make a new playlist."
+      console.warn(`Cached playlist id ${playlistId} no longer resolves (${res.status}) — will repair the cache and fall back to a name-based lookup.`);
+      return null;
+    }
     return await res.json();
   }
 
@@ -423,6 +430,25 @@ const SpotifyExport = (() => {
     }
   }
 
+  // Spotify's error responses include a real reason (invalid scope, bad
+  // playlist id, rate limit, etc.) in the body — throwing it alongside the
+  // status turns "Failed to add tracks to playlist" into something you can
+  // actually act on instead of guessing.
+  async function throwApiError(res, action) {
+    let detail = "";
+    try {
+      const body = await res.json();
+      detail = body?.error?.message || JSON.stringify(body);
+    } catch (e) {
+      try {
+        detail = await res.text();
+      } catch (e2) {
+        /* body already consumed or unreadable — status code is still useful on its own */
+      }
+    }
+    throw new Error(`${action} (${res.status}${res.statusText ? " " + res.statusText : ""})${detail ? ": " + detail : ""}`);
+  }
+
   // Spotify's February 2026 Dev Mode migration removed POST /users/{id}/playlists
   // in favor of POST /me/playlists — no user ID needed at all anymore.
   async function createPlaylist(accessToken, name, description) {
@@ -431,7 +457,7 @@ const SpotifyExport = (() => {
       headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
       body: JSON.stringify({ name, description, public: false }),
     });
-    if (!res.ok) throw new Error("Failed to create playlist");
+    if (!res.ok) await throwApiError(res, "Failed to create playlist");
     return await res.json();
   }
 
@@ -486,7 +512,7 @@ const SpotifyExport = (() => {
         headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
         body: JSON.stringify({ uris: batch }),
       });
-      if (!res.ok) throw new Error("Failed to add tracks to playlist");
+      if (!res.ok) await throwApiError(res, "Failed to add tracks to playlist");
     }
   }
 
