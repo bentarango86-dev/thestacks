@@ -463,11 +463,18 @@ const SpotifyExport = (() => {
 
   // Also renamed in the Feb 2026 migration: /playlists/{id}/tracks → /playlists/{id}/items
   async function getPlaylistTrackUris(accessToken, playlistId) {
+    // The Feb 2026 migration didn't just rename the endpoint — each entry's
+    // track object was also renamed from `track` to `item` (per Spotify's
+    // migration guide: items.items.track -> items.items.item). Filtering on
+    // (and reading) the old `track` field here silently returned nothing,
+    // so this always came back empty — every track looked "new" and got
+    // re-added on every single build, even for a playlist that already had
+    // them all.
     const items = await fetchAllPages(
       accessToken,
-      `${API}/playlists/${playlistId}/items?fields=items(track(uri)),next&limit=100`
+      `${API}/playlists/${playlistId}/items?fields=items(item(uri)),next&limit=100`
     );
-    return new Set(items.map((it) => it.track?.uri).filter(Boolean));
+    return new Set(items.map((it) => it.item?.uri).filter(Boolean));
   }
 
   // Also renamed in the Feb 2026 migration: /playlists/{id}/tracks → /playlists/{id}/items

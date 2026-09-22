@@ -624,6 +624,10 @@
   }
   .chip-btn:hover { border-color: var(--amber-dim); background: #fff8ec; }
   .chip-btn i { font-size: 13px; color: var(--amber-dim); }
+  .chip-btn.selected {
+    background: var(--amber); border-color: var(--amber-dim); color: var(--vinyl, #f2e8d3);
+  }
+  .chip-btn.selected i { color: var(--vinyl, #f2e8d3); }
 
   /* ---------- GALLERY CARD (album-art-first) ---------- */
   .gallery-grid {

@@ -145,6 +145,34 @@ document.getElementById('modals-root').innerHTML = `
   </div>
 </div>
 
+<div class="overlay" id="mixPlaylistOverlay">
+  <div class="modal" style="max-width:460px;">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:4px;">
+      <h2>Mix playlist</h2>
+      <button type="button" class="btn btn-ghost" id="mixPlaylistCloseBtn" style="padding:6px 10px;"><i class="ti ti-x"></i></button>
+    </div>
+    <p style="font-size:12.5px; color:#6b6650; margin-bottom:16px;">Pick a few shelves to combine into one Spotify playlist.</p>
+
+    <div class="field">
+      <label>Playlist name</label>
+      <input type="text" id="mixPlaylistName" placeholder="e.g. Late night mix" autocomplete="off" maxlength="100">
+    </div>
+
+    <div class="field">
+      <label>Shelves to include</label>
+      <div class="quick-row" id="mixPlaylistShelfPicker"></div>
+    </div>
+
+    <div id="mixPlaylistStatus" class="mix-status"></div>
+    <div id="mixPlaylistError" style="color:var(--rust); font-size:12px; margin-top:8px; display:none;"></div>
+
+    <div class="modal-actions">
+      <button type="button" class="btn btn-ghost" id="mixPlaylistCancelBtn">Cancel</button>
+      <button type="button" class="btn btn-primary" id="mixPlaylistBuildBtn">Build playlist</button>
+    </div>
+  </div>
+</div>
+
 <div class="overlay" id="securityOverlay">
   <div class="modal" style="max-width:400px;">
     <h2>Two-factor authentication</h2>

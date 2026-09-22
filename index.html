@@ -114,6 +114,16 @@
     to { transform: rotate(360deg); }
   }
 
+  /* Status block inside the Mix Playlist modal — reuses turntableSvg() and
+     the same .play-card-* text classes as the shelf trigger's expanded
+     popup, but as a plain in-flow block rather than an absolutely
+     positioned card, since it lives inside a modal instead of anchored to
+     a shelf title. */
+  .mix-status:empty { display: none; }
+  .mix-status { text-align: center; margin-top: 18px; }
+  .mix-status .turntable-icon { width: 30px; height: 30px; margin: 0 auto 6px; color: var(--ink, #0c2340); }
+  .mix-status.building .turntable-platter { animation: turntableSpin 1.6s linear infinite; }
+
   .play-card-label {
     font-family: 'Fraunces', serif;
     font-weight: 700; font-size: 13px;
@@ -196,6 +206,7 @@
         </button>
         <div class="profile-menu" id="profileMenu" hidden>
           <button type="button" class="detail-menu-item" id="helpBtn"><i class="ti ti-help-circle"></i>Help</button>
+          <button type="button" class="detail-menu-item" id="mixPlaylistBtn"><i class="ti ti-playlist-add"></i>Mix playlist</button>
           <button type="button" class="detail-menu-item" id="securityBtn"><i class="ti ti-shield-lock"></i>Security</button>
           <button type="button" class="detail-menu-item" id="exportBtn"><i class="ti ti-download"></i>Export CSV</button>
           <div class="profile-menu-divider"></div>
@@ -727,6 +738,164 @@ async function playStack(stackId, cardEl) {
     finishPlay();
   }
 }
+
+// ---- Mix Playlist (ad hoc, multi-shelf) ----
+// Same buildPlaylist() call the single-shelf Play Stack button uses —
+// the only difference is stackName/records come from a picked set of
+// shelves instead of a single stackId, and the status UI renders inside
+// the modal instead of a shelf-anchored popup.
+
+function getAllStackOptions() {
+  const provider = getMusicProvider();
+  const owned = records.filter(r => !r.isWishlist);
+  const genreKeys = [...new Set(owned.map(r => r.genre || '__none__'))].sort((a, b) => {
+    if (a === '__none__') return 1;
+    if (b === '__none__') return -1;
+    return a.localeCompare(b);
+  });
+
+  return ['recentlyAdded', ...genreKeys, 'wishlist']
+    .map(id => {
+      const { label, list } = getStackRecordsAndLabel(id);
+      const trackTotal = list.reduce((sum, r) => sum + provider.parseTracklist(r.tracklist).length, 0);
+      return { id, label, trackTotal };
+    })
+    // Same rule the shelf trigger uses — don't offer a shelf with nothing
+    // exportable in it.
+    .filter(opt => opt.trackTotal > 0);
+}
+
+let mixPlaylistSelectedIds = new Set();
+let mixPlaylistBuildInProgress = false;
+
+function openMixPlaylistModal() {
+  mixPlaylistSelectedIds = new Set();
+  el('mixPlaylistName').value = '';
+  el('mixPlaylistError').style.display = 'none';
+  const statusEl = el('mixPlaylistStatus');
+  statusEl.className = 'mix-status';
+  statusEl.innerHTML = '';
+
+  const options = getAllStackOptions();
+  const pickerEl = el('mixPlaylistShelfPicker');
+  if (options.length === 0) {
+    pickerEl.innerHTML = `<p style="font-size:12.5px; color:#8a7d63; margin:0;">No shelves with exportable tracks yet.</p>`;
+  } else {
+    pickerEl.innerHTML = options.map(opt => `
+      <button type="button" class="chip-btn" data-stack-id="${escapeAttr(opt.id)}">
+        ${escapeHtml(opt.label)} <span style="opacity:0.65;">· ${opt.trackTotal}</span>
+      </button>
+    `).join('');
+    pickerEl.querySelectorAll('.chip-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.stackId;
+        if (mixPlaylistSelectedIds.has(id)) {
+          mixPlaylistSelectedIds.delete(id);
+          btn.classList.remove('selected');
+        } else {
+          mixPlaylistSelectedIds.add(id);
+          btn.classList.add('selected');
+        }
+      });
+    });
+  }
+
+  el('mixPlaylistOverlay').classList.add('open');
+}
+
+function closeMixPlaylistModal() {
+  if (mixPlaylistBuildInProgress) return; // don't let a build get dismissed mid-flight
+  el('mixPlaylistOverlay').classList.remove('open');
+}
+
+async function buildMixPlaylist() {
+  if (mixPlaylistBuildInProgress) return;
+
+  const name = el('mixPlaylistName').value.trim();
+  const errorEl = el('mixPlaylistError');
+  errorEl.style.display = 'none';
+
+  if (!name) {
+    errorEl.textContent = 'Name the playlist first.';
+    errorEl.style.display = 'block';
+    return;
+  }
+  if (mixPlaylistSelectedIds.size === 0) {
+    errorEl.textContent = 'Pick at least one shelf to combine.';
+    errorEl.style.display = 'block';
+    return;
+  }
+
+  const provider = getMusicProvider();
+  if (!provider.isConnected()) {
+    // No resume id to carry through the redirect for an ad hoc mix like
+    // there is for a single shelf's Play Stack button — the picker/typed
+    // name don't survive the round trip, so just get connected and let
+    // the person reopen this and pick again once they're back.
+    provider.connect();
+    return;
+  }
+
+  // Combine every selected shelf's records, deduped by record id — genres,
+  // New Arrivals, and Wishlist are mutually exclusive today so this can't
+  // actually happen yet, but it keeps a future overlapping shelf correct.
+  const seenRecordIds = new Set();
+  const combinedRecords = [];
+  mixPlaylistSelectedIds.forEach(stackId => {
+    const { list } = getStackRecordsAndLabel(stackId);
+    list.forEach(r => {
+      if (!seenRecordIds.has(r.id)) {
+        seenRecordIds.add(r.id);
+        combinedRecords.push(r);
+      }
+    });
+  });
+
+  const trackTotal = combinedRecords.reduce((sum, r) => sum + provider.parseTracklist(r.tracklist).length, 0);
+
+  mixPlaylistBuildInProgress = true;
+  el('mixPlaylistBuildBtn').disabled = true;
+  const statusEl = el('mixPlaylistStatus');
+  statusEl.className = 'mix-status building';
+  renderPlayCardBuilding(statusEl, name, combinedRecords.length, trackTotal, 0);
+
+  try {
+    const result = await provider.buildPlaylist({
+      stackName: name,
+      records: combinedRecords,
+      onProgress: ({ albumsDone, albumsTotal, tracksAdded, currentAlbum }) => {
+        const pct = Math.round((albumsDone / albumsTotal) * 100);
+        renderPlayCardBuilding(statusEl, name, combinedRecords.length, trackTotal, pct, currentAlbum, tracksAdded);
+      },
+    });
+
+    if (result.unmatched.length > 0) {
+      console.warn('Tracks could not be matched:', result.unmatched);
+    }
+
+    statusEl.classList.remove('building');
+    renderPlayCardSuccess(statusEl, result.playlistUrl, result.tracksAdded, result.unmatched.length, result.alreadyPresent, result.wasExisting);
+    setTimeout(() => { window.location.href = result.playlistUrl; }, 550);
+  } catch (err) {
+    console.error(err);
+    statusEl.classList.remove('building');
+    renderPlayCardError(statusEl, err.message || 'Please try again.');
+  } finally {
+    mixPlaylistBuildInProgress = false;
+    el('mixPlaylistBuildBtn').disabled = false;
+  }
+}
+
+el('mixPlaylistBtn').addEventListener('click', () => {
+  closeProfileMenu();
+  openMixPlaylistModal();
+});
+el('mixPlaylistCloseBtn').addEventListener('click', closeMixPlaylistModal);
+el('mixPlaylistCancelBtn').addEventListener('click', closeMixPlaylistModal);
+el('mixPlaylistBuildBtn').addEventListener('click', buildMixPlaylist);
+el('mixPlaylistOverlay').addEventListener('click', e => {
+  if (e.target === el('mixPlaylistOverlay')) closeMixPlaylistModal();
+});
 
 
 function renderPage() {
